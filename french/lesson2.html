@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Français Leçon 2 - Flülli</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --blue: #1a4fa0;
+            --accent: #d94f3d;
+            --light: #f0f4fb;
+            --text: #1e1e2e;
+            --muted: #5a5a72;
+            --border: #c8d5ee;
+            --card: #ffffff;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Source Sans 3', sans-serif;
+            background-color: var(--light);
+            color: var(--text);
+            line-height: 1.8;
+            padding: 0 20px 60px;
+        }
+
+        .page-header {
+            background: var(--blue);
+            color: white;
+            text-align: center;
+            padding: 36px 20px 28px;
+            margin: 0 -20px 40px;
+            border-bottom: 4px solid var(--accent);
+        }
+
+        .page-header .flag {
+            font-size: 2.4em;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .page-header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2em;
+            letter-spacing: 0.02em;
+        }
+
+        .page-header .subtitle {
+            font-size: 0.95em;
+            opacity: 0.8;
+            margin-top: 4px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .content {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .section-label {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.15em;
+            color: var(--blue);
+            border-left: 4px solid var(--accent);
+            padding-left: 12px;
+            margin: 36px 0 14px;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            font-family: 'Source Sans 3', sans-serif;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px 24px;
+            font-size: 1em;
+            line-height: 1.9;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        pre u {
+            text-decoration: underline;
+        }
+
+        hr {
+            border: none;
+            border-top: 2px solid var(--border);
+            margin: 40px 0;
+        }
+
+        #quiz-section h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.6em;
+            color: var(--blue);
+            margin-bottom: 6px;
+        }
+
+        #quiz-section .quiz-sub {
+            color: var(--muted);
+            font-size: 0.9em;
+            margin-bottom: 20px;
+        }
+
+        #quiz-container {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 28px 24px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.07);
+        }
+
+        #word {
+            display: block;
+            font-family: 'Playfair Display', serif;
+            font-size: 2em;
+            color: var(--blue);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .option-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 0 0 16px;
+        }
+
+        .option-card {
+            padding: 16px 12px;
+            background: var(--light);
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            font-size: 1em;
+            font-family: 'Source Sans 3', sans-serif;
+            transition: background 0.2s, border-color 0.2s, transform 0.1s;
+        }
+
+        .option-card:hover {
+            background: #d6e6ff;
+            border-color: var(--blue);
+            transform: translateY(-2px);
+        }
+
+        .option-card.correct {
+            background: #d4f5e1;
+            border-color: #27a85a;
+        }
+
+        .option-card.wrong {
+            background: #fde8e6;
+            border-color: var(--accent);
+        }
+
+        #feedback {
+            text-align: center;
+            font-size: 1.05em;
+            font-weight: 600;
+            min-height: 1.5em;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+
+        .score-line {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.9em;
+        }
+
+        .score-line span {
+            font-weight: 700;
+            color: var(--blue);
+        }
+
+        .restart-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 28px;
+            background: var(--blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-family: 'Source Sans 3', sans-serif;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .restart-btn:hover {
+            background: #153d80;
+        }
+
+        .navigation {
+            margin-top: 48px;
+            display: flex;
+            justify-content: space-between;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .navigation a {
+            color: var(--blue);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95em;
+            letter-spacing: 0.02em;
+            padding: 8px 0;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+
+        .navigation a:hover {
+            border-bottom-color: var(--accent);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page-header">
+        <span class="flag">🇫🇷</span>
+        <h1>Leçon 2</h1>
+        <div class="subtitle">Français pour coréanophones &nbsp;·&nbsp; 한국어 사용자를 위한 프랑스어</div>
+    </div>
+
+    <div class="content">
+
+        <!-- ── Conversation ── -->
+        <div class="section-label">Conversation (Français)</div>
+        <pre>
+Léa : Bonjour.
+Minjun : Bonjour.
+Léa : Tu vas où ?
+Minjun : Je vais à la bibliothèque. Tu vas où ?
+Léa : Je vais à mon université. Tu aimes les livres ?
+Minjun : Oui, j'aime les livres. Tu aimes l'école ?
+Léa : Non, je n'aime pas l'école.
+        </pre>
+
+        <!-- ── Korean Translation ── -->
+        <div class="section-label">대화 (한국어)</div>
+        <pre>
+Léa : 안녕하세요.
+Minjun : 안녕하세요.
+Léa : 어디 가요?
+Minjun : 저는 도서관에 가요. 어디 가요?
+Léa : 저는 제 대학교에 가요. 책을 좋아해요?
+Minjun : 네, 저는 책을 좋아해요. 학교를 좋아해요?
+Léa : 아니요, 저는 학교를 좋아하지 않아요.
+        </pre>
+
+        <!-- ── Vocabulary 1 ── -->
+        <div class="section-label">Vocabulaire 1 어휘 1</div>
+        <pre>
+Bonjour - 안녕하세요
+Tu vas où ? - 어디 가요?
+aller (je vais / tu vas) - 가다 (저는 가요 / 당신은 가요)
+bibliothèque - 도서관
+université - 대학교
+aimer (j'aime / tu aimes) - 좋아하다 (저는 좋아해요 / 당신은 좋아해요)
+livres - 책
+école - 학교
+oui - 네
+non - 아니요
+        </pre>
+
+        <!-- ── Q&A ── -->
+        <div class="section-label">Questions et Réponses 질문과 대답</div>
+        <pre>
+❓ Tu vas où ?               어디 가요?
+   Je vais à ______.        저는 ______에 가요.
+
+<u>Vocabulaire 2</u>
+cinéma – 영화관
+restaurant – 식당
+magasin – 가게
+banque – 은행
+gare – 기차역
+aéroport – 공항
+plage – 해변
+montagne – 산
+musée – 박물관
+hôtel – 호텔
+
+❓ Tu aimes ____ ?           ____을/를 좋아해요? (단수)
+   Oui, j'aime ____.        네, 저는 ____을/를 좋아해요.
+   Non, je n'aime pas ____. 아니요, 저는 ____을/를 좋아하지 않아요.
+
+<u>Vocabulaire 3</u>
+musique – 음악
+films – 영화
+thé – 차
+football – 축구
+chiens – 개
+chats – 고양이
+vélo – 자전거
+chocolat – 초콜릿
+fruits – 과일
+glace – 아이스크림
+        </pre>
+
+        <hr />
+
+        <!-- ── Quiz ── -->
+        <div id="quiz-section">
+            <h2>Vocabulaire Quiz</h2>
+            <p class="quiz-sub">단어를 보고 한국어 뜻을 고르세요 — Choose the correct Korean meaning.</p>
+
+            <div id="quiz-container">
+                <strong id="word"></strong>
+                <div id="options" class="option-grid"></div>
+                <p id="feedback"></p>
+                <p class="score-line">점수: <span id="score">0</span> / <span id="total">0</span></p>
+            </div>
+        </div>
+
+        <!-- ── Navigation ── -->
+        <div class="navigation">
+            <a href="lesson1.html">← Leçon 1</a>
+            <a href="lesson3.html">Leçon 3 →</a>
+        </div>
+
+    </div><!-- /.content -->
+
+    <script>
+    const vocab = {
+        "musique":          ["음악"],
+        "films":            ["영화"],
+        "thé":              ["차"],
+        "football":         ["축구"],
+        "chiens":           ["개"],
+        "chats":            ["고양이"],
+        "vélo":             ["자전거"],
+        "chocolat":         ["초콜릿"],
+        "fruits":           ["과일"],
+        "glace":            ["아이스크림"],
+        "cinéma":           ["영화관"],
+        "restaurant":       ["식당"],
+        "magasin":          ["가게"],
+        "banque":           ["은행"],
+        "gare":             ["기차역"],
+        "aéroport":         ["공항"],
+        "plage":            ["해변"],
+        "montagne":         ["산"],
+        "musée":            ["박물관"],
+        "hôtel":            ["호텔"],
+        "Bonjour":          ["안녕하세요"],
+        "Tu vas où ?":      ["어디 가요?"],
+        "je vais":          ["저는 가요"],
+        "tu vas":           ["당신은 가요"],
+        "bibliothèque":     ["도서관"],
+        "université":       ["대학교"],
+        "j'aime":           ["저는 좋아해요"],
+        "tu aimes":         ["당신은 좋아해요"],
+        "livres":           ["책"],
+        "école":            ["학교"],
+        "oui":              ["네"],
+        "non":              ["아니요"]
+    };
+
+    const words = Object.keys(vocab);
+    let score = 0;
+    let questionIndex = 0;
+    const totalQuestions = 10;
+    let answered = false;
+
+    document.getElementById('total').textContent = totalQuestions;
+
+    function getRandomOptions(correctAnswer) {
+        const allAnswers = Object.values(vocab).flat().filter(a => !correctAnswer.includes(a));
+        const shuffled = allAnswers.sort(() => Math.random() - 0.5);
+        const wrongOptions = shuffled.slice(0, 3);
+        const options = [...wrongOptions, correctAnswer[0]];
+        return options.sort(() => Math.random() - 0.5);
+    }
+
+    function loadQuestion() {
+        if (questionIndex >= totalQuestions) {
+            document.getElementById('quiz-container').innerHTML = `
+                <h3 style="font-family:'Playfair Display',serif; color:var(--blue); font-size:1.5em; margin-bottom:10px;">퀴즈 완료! Quiz Complete!</h3>
+                <p style="font-size:1.1em;">최종 점수 Final Score: <strong>${score} / ${totalQuestions}</strong></p>
+                <button class="restart-btn" onclick="restartQuiz()">🔁 다시 하기 Play Again</button>
+            `;
+            return;
+        }
+
+        answered = false;
+        const currentWord = words[Math.floor(Math.random() * words.length)];
+        const correctAnswers = vocab[currentWord];
+        const options = getRandomOptions(correctAnswers);
+
+        document.getElementById('word').textContent = currentWord;
+        document.getElementById('options').innerHTML = "";
+
+        options.forEach(option => {
+            const btn = document.createElement("div");
+            btn.textContent = option;
+            btn.className = "option-card";
+            btn.onclick = () => checkAnswer(btn, option, correctAnswers);
+            document.getElementById("options").appendChild(btn);
+        });
+
+        document.getElementById("feedback").textContent = "";
+    }
+
+    function checkAnswer(btn, selected, correctAnswers) {
+        if (answered) return;
+        answered = true;
+
+        const allCards = document.querySelectorAll('.option-card');
+
+        if (correctAnswers.map(a => a.toLowerCase()).includes(selected.toLowerCase())) {
+            score++;
+            btn.classList.add('correct');
+            document.getElementById("feedback").textContent = "✅ 정답! Correct!";
+        } else {
+            btn.classList.add('wrong');
+            allCards.forEach(card => {
+                if (correctAnswers.map(a => a.toLowerCase()).includes(card.textContent.toLowerCase())) {
+                    card.classList.add('correct');
+                }
+            });
+            document.getElementById("feedback").textContent = `❌ 틀렸어요. 정답: ${correctAnswers[0]}`;
+        }
+
+        document.getElementById("score").textContent = score;
+        questionIndex++;
+        setTimeout(loadQuestion, 1600);
+    }
+
+    function restartQuiz() {
+        score = 0;
+        questionIndex = 0;
+        answered = false;
+
+        document.getElementById('quiz-container').innerHTML = `
+            <strong id="word"></strong>
+            <div id="options" class="option-grid"></div>
+            <p id="feedback"></p>
+            <p class="score-line">점수: <span id="score">0</span> / <span id="total">${totalQuestions}</span></p>
+        `;
+
+        loadQuestion();
+    }
+
+    loadQuestion();
+    </script>
+
+</body>
+</html>
