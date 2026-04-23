@@ -251,7 +251,147 @@
             );
         };
 // Multiple Choice Mode
-       // MultipleChoiceMode
+        const ModeSelectionPage = ({ deckKey, onSelectMode, onBack }) => {
+            const deck = vocabularyDecks[deckKey];
+            
+            const modes = [
+                { 
+                    id: 'multiple-choice', 
+                    name: 'Multiple Choice',
+                    description: 'Select the correct answer from 4 options',
+                    icon: '🎯'
+                },
+                { 
+                    id: 'type-answer', 
+                    name: 'Type the Answer',
+                    description: 'Type the correct translation',
+                    icon: '⌨️'
+                },
+                { 
+                    id: 'handwrite', 
+                    name: 'Write by Hand',
+                    description: 'Draw your answer and verify it yourself',
+                    icon: '✏️'
+                },
+                { 
+                    id: 'penguin-game', 
+                    name: 'Penguin Game',
+                    description: 'Match words in an interactive game',
+                    icon: '🐧'
+                }
+            ];
+
+            return (
+                <div style={{
+                    width: '100%',
+                    height: '100vh',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '2rem',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                }}>
+                    <button
+                        onClick={onBack}
+                        style={{
+                            position: 'absolute',
+                            top: '2rem',
+                            left: '2rem',
+                            backgroundColor: 'rgba(255,255,255,0.2)',
+                            border: 'none',
+                            color: 'white',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '0.5rem',
+                            cursor: 'pointer',
+                            fontSize: '1rem',
+                            fontWeight: '600',
+                            transition: 'all 0.3s ease'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)'}
+                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'}
+                    >
+                        ← Back
+                    </button>
+
+                    <div style={{ marginBottom: '2rem', textAlign: 'center' }}>
+                        <h1 style={{
+                            fontSize: '2.5rem',
+                            fontWeight: 'bold',
+                            color: 'white',
+                            textShadow: '0 4px 15px rgba(0,0,0,0.3)'
+                        }}>
+                            {deck.flag} {deck.name}
+                        </h1>
+                        <p style={{
+                            color: 'rgba(255,255,255,0.9)',
+                            fontSize: '1.125rem',
+                            marginTop: '0.5rem'
+                        }}>
+                            Choose a practice mode
+                        </p>
+                    </div>
+                    
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                        gap: '2rem',
+                        maxWidth: '1000px',
+                        width: '100%'
+                    }}>
+                        {modes.map((mode, index) => (
+                            <button
+                                key={mode.id}
+                                onClick={() => onSelectMode(mode.id)}
+                                style={{
+                                    backgroundColor: 'white',
+                                    border: 'none',
+                                    borderRadius: '1rem',
+                                    padding: '2rem',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease',
+                                    boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+                                    animation: `fadeIn 0.6s ease-out ${0.1 * (index + 1)}s backwards`,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    textAlign: 'center'
+                                }}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-8px)';
+                                    e.currentTarget.style.boxShadow = '0 15px 40px rgba(0,0,0,0.3)';
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
+                                }}
+                            >
+                                <div style={{ fontSize: '2.5rem', marginBottom: '1rem' }}>
+                                    {mode.icon}
+                                </div>
+                                <div style={{
+                                    fontSize: '1.125rem',
+                                    fontWeight: '600',
+                                    color: '#333',
+                                    marginBottom: '0.5rem'
+                                }}>
+                                    {mode.name}
+                                </div>
+                                <div style={{
+                                    fontSize: '0.875rem',
+                                    color: '#666'
+                                }}>
+                                    {mode.description}
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        const shuffle = (array) => [...array].sort(() => Math.random() - 0.5);
+        
 const MultipleChoiceMode = ({ deckKey, onBack }) => {
     const deck = vocabularyDecks[deckKey];
 
@@ -263,13 +403,8 @@ const MultipleChoiceMode = ({ deckKey, onBack }) => {
     const [hasAttemptedCurrent, setHasAttemptedCurrent] = useState(false);
     const [selectedAnswer, setSelectedAnswer] = useState(null);
     const [isFinished, setIsFinished] = useState(false);
+    const currentWord = (queue && queue.length > 0) ? queue[currentIndex] : null;
 
-    // Basic shuffle function inside for absolute safety
-    const localShuffle = (array) => [...array].sort(() => Math.random() - 0.5);
-
-    const currentWord = queue[currentIndex];
-
-    // LOBBY GATE
     if (!practiceDirection) {
         return (
             <div style={{ width: '100%', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -279,7 +414,7 @@ const MultipleChoiceMode = ({ deckKey, onBack }) => {
                         <button 
                             onClick={() => {
                                 setPracticeDirection('toTranslation');
-                                setQueue(localShuffle(deck.words));
+                                setQueue(shuffle(deck.words));
                             }} 
                             style={menuButtonStyle}
                         >
@@ -288,7 +423,7 @@ const MultipleChoiceMode = ({ deckKey, onBack }) => {
                         <button 
                             onClick={() => {
                                 setPracticeDirection('toWord');
-                                setQueue(localShuffle(deck.words));
+                                setQueue(shuffle(deck.words));
                             }} 
                             style={menuButtonStyle}
                         >
@@ -303,9 +438,22 @@ const MultipleChoiceMode = ({ deckKey, onBack }) => {
         );
     }
 
-    // GAME LOGIC
+    const options = useMemo(() => {
+        if (!currentWord) return [];
+        const isToWord = practiceDirection === 'toWord';
+        const correctAnswer = isToWord ? currentWord.word : currentWord.translation;
+        
+        let choices = [correctAnswer];
+        let distractors = deck.words
+            .filter(w => w.word !== currentWord.word)
+            .map(w => isToWord ? w.word : w.translation);
+        
+        choices.push(...shuffle(distractors).slice(0, 3));
+        return shuffle(choices);
+    }, [currentWord, practiceDirection]);
+
     const handleAnswer = (choice) => {
-        if (selectedAnswer) return; 
+        if (selectedAnswer || !currentWord) return; 
         setSelectedAnswer(choice);
 
         const correctAnswer = practiceDirection === 'toTranslation' 
@@ -354,42 +502,35 @@ const MultipleChoiceMode = ({ deckKey, onBack }) => {
         );
     }
 
-    // GENERATE OPTIONS MANUALLY (NO HOOKS)
-    const isToWord = practiceDirection === 'toWord';
-    const correctAnswer = isToWord ? currentWord.word : currentWord.translation;
-    const distractors = deck.words
-        .filter(w => w.word !== currentWord.word)
-        .map(w => isToWord ? w.word : w.translation);
-    const options = localShuffle([correctAnswer, ...localShuffle(distractors).slice(0, 3)]);
-
     return (
         <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div style={{ color: 'white', marginBottom: '1rem' }}>
                 Progress: {currentIndex + 1} / {queue.length}
             </div>
-
             <div style={cardStyle}>
                 <h1 style={{ fontSize: '3rem', margin: '1rem 0' }}>
                     {practiceDirection === 'toTranslation' ? currentWord.word : currentWord.translation}
                 </h1>                        
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%' }}>
-                    {options.map((option, i) => (
-                        <button
-                            key={`${currentIndex}-${i}`}
-                            onClick={() => handleAnswer(option)}
-                            style={{
-                                ...optionStyle,
-                                backgroundColor: selectedAnswer === option 
-                                    ? (option === correctAnswer ? '#10b981' : '#ef4444') 
-                                    : 'white'
-                            }}
-                        >
-                            {option}
-                        </button>
-                    ))}
+                    {options.map((option, i) => {
+                        const correctAnswer = practiceDirection === 'toTranslation' ? currentWord.translation : currentWord.word;
+                        return (
+                            <button
+                                key={i}
+                                onClick={() => handleAnswer(option)}
+                                style={{
+                                    ...optionStyle,
+                                    backgroundColor: selectedAnswer === option 
+                                        ? (option === correctAnswer ? '#10b981' : '#ef4444') 
+                                        : 'white'
+                                }}
+                            >
+                                {option}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
-
             <button onClick={onBack} style={{ ...buttonStyle, position: 'absolute', bottom: '2rem', left: '2rem' }}>
                 ← Back
             </button>
