@@ -78,7 +78,6 @@
         const vocabularyDecks = {
             tagalog1: {
                 name: 'Tagalog 1',
-                flag: '🇵🇭',
                 words: [
                     { word: 'Gumigising ako nang maaga', translation: 'I wake up early' },
                     { word: 'Gumagawa ako ng almusal', translation: 'I am making breakfast' },
@@ -103,7 +102,6 @@
             },
             tagalog2: {
                 name: 'Tagalog 2',
-                flag: '🇵🇭',
                 words: [
                     { word: 'kumakausap', translation: 'talking' },
                     { word: 'kapag', translation: 'whenever' },
@@ -128,7 +126,6 @@
             },
             tagalog3: {
                 name: 'Tagalog 3',
-                flag: '🇵🇭',
                 words: [
                     { word: 'libreng oras', translation: 'free time' },
                     { word: 'mura', translation: 'cheap' },
@@ -153,7 +150,6 @@
             },
             tagalog4: {
                 name: 'Tagalog 4',
-                flag: '🇵🇭',
                 words: [
                     { word: 'mga guro', translation: 'teachers' },
                     { word: 'Maraming kaibigan', translation: 'Many friends' },
@@ -178,7 +174,6 @@
             },
             tagalog5: {
                 name: 'Tagalog 5',
-                flag: '🇵🇭',
                 words: [
                     { word: 'Mahilig akong magbasa', translation: 'I like to read' },
                     { word: 'magsulat', translation: 'to write' },
@@ -203,7 +198,6 @@
             },
             tagalog6: {
                 name: 'Tagalog 6',
-                flag: '🇵🇭',
                 words: [
                     { word: 'maya-mayang', translation: 'later on' },
                     { word: 'meron silang anak na lalaki', translation: 'they have a son' },
@@ -228,7 +222,6 @@
             },
             tagalog7: {
                 name: 'Tagalog 7',
-                flag: '🇵🇭',
                 words: [
                     { word: 'makauwi ng alas singko', translation: 'to be able to go home at 5:00' },
                     { word: 'kakaunti lang', translation: 'only a few / just a little' },
@@ -253,7 +246,6 @@
             },
             tagalog8: {
                 name: 'Tagalog 8',
-                flag: '🇵🇭',
                 words: [
                     { word: 'umalis', translation: 'left / departed' },
                     { word: 'pares ng sapatos', translation: 'pair of shoes' },
@@ -278,7 +270,6 @@
             },
             tagalog9: {
                 name: 'Tagalog 9',
-                flag: '🇵🇭',
                 words: [
                     { word: 'isda', translation: 'fish' },
                     { word: 'sa priser', translation: 'in the freezer' },
@@ -303,7 +294,6 @@
             },
             tagalog10: {
                 name: 'Tagalog 10',
-                flag: '🇵🇭',
                 words: [
                     { word: 'kabado', translation: 'nervous' },
                     { word: 'nagtataka', translation: 'wondering / curious' },
@@ -438,9 +428,7 @@
                                     e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
                                 }}
                             >
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
-                                    {deck.flag}
-                                </div>
+                            
                                 <div>{deck.name}</div>
                                 <div style={{
                                     fontSize: '0.875rem',
@@ -526,7 +514,7 @@
                             color: 'white',
                             textShadow: '0 4px 15px rgba(0,0,0,0.3)'
                         }}>
-                            {deck.flag} {deck.name}
+                             {deck.name}
                         </h1>
                         <p style={{
                             color: 'rgba(255,255,255,0.9)',
