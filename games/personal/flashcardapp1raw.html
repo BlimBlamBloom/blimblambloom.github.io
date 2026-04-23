@@ -432,62 +432,8 @@
                 </div>
             );
         };
-
-        // Card Side Picker (ex. Pol - Eng, Eng - Pol)
-        const SidePicker = ({ deck, onSelect }) => {
-            return (
-                <div style={{
-                    width: '100%', height: '100vh', display: 'flex', flexDirection: 'column',
-                    alignItems: 'center', justifyContent: 'center',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    padding: '2rem'
-                }}>
-                    <h2 style={{ color: 'white', fontSize: '2rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                        Choose Direction
-                    </h2>
-                    <p style={{ color: 'rgba(255,255,255,0.8)', marginBottom: '3rem', fontSize: '1.1rem' }}>
-                        Which side do you want to start from?
-                    </p>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', width: '100%', maxWidth: '400px' }}>
-                        <button
-                            onClick={() => onSelect('native')}
-                            style={{
-                                padding: '1.5rem', backgroundColor: 'white', border: 'none',
-                                borderRadius: '1rem', cursor: 'pointer', fontSize: '1.1rem',
-                                fontWeight: '600', color: '#333', boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-                                transition: 'all 0.2s ease'
-                            }}
-                            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-                            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                        >
-                            {deck.words[0].word} → {deck.words[0].translation}
-                            <div style={{ fontSize: '0.85rem', color: '#888', marginTop: '0.4rem' }}>
-                                See the foreign word, type English
-                            </div>
-                        </button>
-                        <button
-                            onClick={() => onSelect('english')}
-                            style={{
-                                padding: '1.5rem', backgroundColor: 'white', border: 'none',
-                                borderRadius: '1rem', cursor: 'pointer', fontSize: '1.1rem',
-                                fontWeight: '600', color: '#333', boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-                                transition: 'all 0.2s ease'
-                            }}
-                            onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-                            onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                        >
-                            {deck.words[0].translation} → {deck.words[0].word}
-                            <div style={{ fontSize: '0.85rem', color: '#888', marginTop: '0.4rem' }}>
-                                See the English word, write the foreign word
-                            </div>
-                        </button>
-                    </div>
-                </div>
-            );
-        };
-        
             // MultipleChoiceMode
-        const MultipleChoiceMode = ({ deckKey, onBack, side }) => {
+               const MultipleChoiceMode = ({ deckKey, onBack }) => {
             const deck = getDeck(deckKey);
             
             // Helper to shuffle any array
@@ -507,12 +453,10 @@
             // Generate options once per card
             const options = useMemo(() => {
                 if (!currentWord) return [];
-                const prompt = side === 'native' ? currentWord.word : currentWord.translation;
-                const answer = side === 'native' ? currentWord.translation : currentWord.word;
-                let choices = [answer];
+                let choices = [currentWord.translation];
                 let distractors = deck.words
                     .filter(w => w.word !== currentWord.word)
-                    .map(w => side === 'native' ? w.translation : w.word);
+                    .map(w => w.translation);
                 
                 choices.push(...shuffle(distractors).slice(0, 3));
                 return shuffle(choices);
@@ -522,8 +466,7 @@
                 if (selectedAnswer) return; 
                 setSelectedAnswer(choice);
         
-                const correctAnswer = side === 'native' ? currentWord.translation : currentWord.word;
-                    if (choice === correctAnswer) {
+                if (choice === currentWord.translation) {
                     // ONLY increment score if:
                     // 1. We haven't failed it yet on THIS specific turn (hasAttemptedCurrent)
                     // 2. This card's position is within the original deck size
@@ -608,9 +551,7 @@
                     </div>
         
                     <div style={cardStyle}>
-                        <h1 style={{ fontSize: '3rem', margin: '1rem 0' }}>
-                            {side === 'native' ? currentWord.word : currentWord.translation}
-                        </h1>
+                        <h1 style={{ fontSize: '3rem', margin: '1rem 0' }}>{currentWord.word}</h1>
                         
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%' }}>
                             {options.map((option, i) => (
@@ -638,9 +579,8 @@
         };
       
         // Type Answer Mode
-       const TypeAnswerMode = ({ deckKey, onBack, side }) => {
+       const TypeAnswerMode = ({ deckKey, onBack }) => {
             const deck = getDeck(deckKey);
-            
             const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
         
             const [queue, setQueue] = useState(() => shuffle(deck.words));
@@ -663,8 +603,7 @@
             const handleSubmit = () => {
                 if (!inputValue.trim() || answered) return;
                 const userAnswer = inputValue.trim().toLowerCase();
-                const correctAnswer = side === 'native' ? currentWord.translation : currentWord.word;
-                const correct = userAnswer === correctAnswer.toLowerCase();
+                const correct = userAnswer === currentWord.translation.toLowerCase();
                 setAnswered(true);
                 setIsCorrect(correct);
         
@@ -747,7 +686,7 @@
                             Translate to English
                         </p>
                         <h2 style={{ fontSize: '3rem', fontWeight: 'bold', color: '#333', marginBottom: '2rem' }}>
-                            {side === 'native' ? currentWord.word : currentWord.translation}
+                            {currentWord.word}
                         </h2>
         
                         <input
@@ -778,7 +717,7 @@
                                 color: isCorrect ? '#065f46' : '#991b1b',
                                 fontWeight: '600', fontSize: '0.95rem'
                             }}>
-                                {isCorrect ? '✓ Correct!' : `✗ The answer was: ${side === 'native' ? currentWord.translation : currentWord.word}`}
+                                {isCorrect ? '✓ Correct!' : `✗ The answer was: ${currentWord.translation}`}
                                 {!isCorrect && <div style={{ fontSize: '0.8rem', marginTop: '0.25rem' }}>This card will come back later.</div>}
                             </div>
                         )}
@@ -813,9 +752,8 @@
         };
 
         // Handwriting Mode
-       const HandwriteMode = ({ deckKey, onBack, side }) => {
+        const HandwriteMode = ({ deckKey, onBack }) => {
             const deck = getDeck(deckKey);
-            
             const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
         
             const [queue, setQueue] = useState(() => shuffle(deck.words));
@@ -963,10 +901,10 @@
         
                     <div style={{ ...cardStyle, maxWidth: '600px' }}>
                         <p style={{ color: '#888', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                            {side === 'native' ? 'Write the translation in English' : 'Write the foreign word'}
+                            Write the translation in English
                         </p>
                         <h2 style={{ fontSize: '3rem', fontWeight: 'bold', color: '#333', marginBottom: '1.5rem' }}>
-                            {side === 'native' ? currentWord.word : currentWord.translation}
+                            {currentWord.word}
                         </h2>
         
                         {/* Drawing canvas */}
@@ -1013,7 +951,7 @@
                                 backgroundColor: '#f0f4ff', border: '2px solid #667eea',
                                 fontSize: '1.5rem', fontWeight: 'bold', color: '#333', textAlign: 'center'
                             }}>
-                                {side === 'native' ? currentWord.translation : currentWord.word}
+                                {currentWord.translation}
                             </div>
                         )}
         
@@ -1494,31 +1432,21 @@
         const VocabApp = () => {
             const [page, setPage] = useState('home');
             const [selectedDeck, setSelectedDeck] = useState(null);
-            const [selectedSide, setSelectedSide] = useState(null);
-            const [pendingMode, setPendingMode] = useState(null);
-            
+
             const handleSelectDeck = (deckKey) => {
                 setSelectedDeck(deckKey);
                 setPage('modes');
             };
 
             const handleSelectMode = (modeId) => {
-                if (['multiple-choice', 'type-answer', 'handwrite'].includes(modeId)) {
-                    setPage('side-picker');
-                    setSelectedSide(null);
-                    setPendingMode(modeId);
-                } else {
-                    setPage(modeId);
-                }
+                setPage(modeId);
             };
 
             const handleBack = (destination = 'modes') => {
                 if (destination === 'modes') {
-                    setSelectedSide(null);
                     setPage('modes');
                 } else {
                     setSelectedDeck(null);
-                    setSelectedSide(null);
                     setPage('home');
                 }
             };
@@ -1528,14 +1456,12 @@
                     return <HomePage onSelectDeck={handleSelectDeck} />;
                 case 'modes':
                     return <ModeSelectionPage deckKey={selectedDeck} onSelectMode={handleSelectMode} onBack={() => handleBack('home')} />;
-                case 'side-picker':
-                    return <SidePicker deck={getDeck(selectedDeck)} onSelect={(side) => { setSelectedSide(side); setPage(pendingMode); }} />;
                 case 'multiple-choice':
-                    return <MultipleChoiceMode deckKey={selectedDeck} side={selectedSide} onBack={() => handleBack('modes')} />;
+                    return <MultipleChoiceMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
                 case 'type-answer':
-                    return <TypeAnswerMode deckKey={selectedDeck} side={selectedSide} onBack={() => handleBack('modes')} />;
+                    return <TypeAnswerMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
                 case 'handwrite':
-                    return <HandwriteMode deckKey={selectedDeck} side={selectedSide} onBack={() => handleBack('modes')} />;
+                    return <HandwriteMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
                 case 'penguin-game':
                     return <PenguinGameMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
                 default:
