@@ -126,6 +126,48 @@
             }
         };
 
+        // 2. Shared Styles (Put them here!)
+    const cardStyle = {
+        backgroundColor: 'white',
+        padding: '2rem',
+        borderRadius: '1rem',
+        width: '100%',
+        maxWidth: '400px',
+        textAlign: 'center',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+    };
+
+    const optionStyle = {
+        padding: '1rem',
+        border: '2px solid #ddd',
+        borderRadius: '0.5rem',
+        cursor: 'pointer',
+        fontSize: '1rem',
+        fontWeight: 'bold',
+        transition: '0.2s'
+    };
+
+    const menuButtonStyle = {
+        padding: '1rem',
+        backgroundColor: '#667eea',
+        color: 'white',
+        border: 'none',
+        borderRadius: '0.5rem',
+        cursor: 'pointer',
+        fontSize: '1.1rem',
+        fontWeight: 'bold',
+        transition: 'all 0.2s ease'
+    };
+
+    const buttonStyle = {
+        padding: '0.5rem 1rem',
+        backgroundColor: 'rgba(255,255,255,0.2)',
+        color: 'white',
+        border: 'none',
+        borderRadius: '0.5rem',
+        cursor: 'pointer'
+    };
+
         const HomePage = ({ onSelectDeck }) => {
             return (
                 <div style={{
@@ -492,36 +534,7 @@
                 </div>
             );
         };
-        
-        // Simple Styles
-        const cardStyle = {
-            backgroundColor: 'white',
-            padding: '2rem',
-            borderRadius: '1rem',
-            width: '100%',
-            maxWidth: '400px',
-            textAlign: 'center',
-            boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
-        };
-        
-        const optionStyle = {
-            padding: '1rem',
-            border: '2px solid #ddd',
-            borderRadius: '0.5rem',
-            cursor: 'pointer',
-            fontSize: '1rem',
-            fontWeight: 'bold',
-            transition: '0.2s'
-        };
-        
-        const buttonStyle = {
-            padding: '0.5rem 1rem',
-            backgroundColor: 'rgba(255,255,255,0.2)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '0.5rem',
-            cursor: 'pointer'
-        };
+      
         // Type Answer Mode
         const TypeAnswerMode = ({ deckKey, onBack }) => {
             const deck = vocabularyDecks[deckKey];
