@@ -460,18 +460,33 @@
             // Generate options once per card
             const options = useMemo(() => {
                 if (!currentWord) return [];
-                let choices = [currentWord.translation];
+                
+                // Is the question supposed to be the English translation?
+                const isToWord = practiceDirection === 'toWord';
+                
+                // If 'toWord', the answer is the Word (e.g., 'dzień').
+                // Otherwise, the answer is the Translation (e.g., 'day').
+                const correctAnswer = isToWord ? currentWord.word : currentWord.translation;
+                
+                let choices = [correctAnswer];
+                
+                // Get the wrong answers from the rest of the deck
                 let distractors = deck.words
                     .filter(w => w.word !== currentWord.word)
-                    .map(w => w.translation);
+                    .map(w => isToWord ? w.word : w.translation);
                 
                 choices.push(...shuffle(distractors).slice(0, 3));
                 return shuffle(choices);
-            }, [currentWord, deck.words]);
+            }, [currentWord, practiceDirection]);
         
             const handleAnswer = (choice) => {
                 if (selectedAnswer) return; 
                 setSelectedAnswer(choice);
+        
+                // Define what the correct answer is based on our direction
+                const correctAnswer = practiceDirection === 'toTranslation' 
+                    ? currentWord.translation 
+                    : currentWord.word;
         
                 if (choice === currentWord.translation) {
                     // ONLY increment score if:
@@ -558,8 +573,9 @@
                     </div>
         
                     <div style={cardStyle}>
-                        <h1 style={{ fontSize: '3rem', margin: '1rem 0' }}>{currentWord.word}</h1>
-                        
+                        <h1 style={{ fontSize: '3rem', margin: '1rem 0' }}>
+                            {practiceDirection === 'toTranslation' ? currentWord.word : currentWord.translation}
+                        </h1>                        
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%' }}>
                             {options.map((option, i) => (
                                 <button
