@@ -1485,7 +1485,7 @@
                         ));
                         setScore(s => {
                             const newScore = s + 1;
-                            if (newScore >= 10) {
+                            if (newScore >= 100) {
                                 setGameWon(true);
                                 if (spawnTimerRef.current) clearInterval(spawnTimerRef.current);
                             }
@@ -1566,7 +1566,7 @@
                         borderRadius: '0.5rem',
                         zIndex: 50
                     }}>
-                        Score: {score}/10
+                        Score: {score}/100
                     </div>
                     <div style={{
                         position: 'absolute',
@@ -1677,7 +1677,7 @@
                                     fontSize: '1.125rem',
                                     marginBottom: '1.5rem'
                                 }}>
-                                    Final Score: {score}/10
+                                    Final Score: {score}/100
                                 </p>
                                 <button
                                     onClick={onBack}
