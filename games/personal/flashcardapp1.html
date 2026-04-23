@@ -393,10 +393,9 @@
         const MultipleChoiceMode = ({ deckKey, onBack }) => {
             const deck = vocabularyDecks[deckKey];
         
+            // 1. All Memories (States)
             const [practiceDirection, setPracticeDirection] = useState(null); 
-            const [queue, setQueue] = useState([]);        
-            const shuffle = (array) => [...array].sort(() => Math.random() - 0.5);
-        
+            const [queue, setQueue] = useState([]);
             const [currentIndex, setCurrentIndex] = useState(0);
             const [wrongAttempts, setWrongAttempts] = useState(0);
             const [firstTryCorrect, setFirstTryCorrect] = useState(0);
@@ -404,10 +403,14 @@
             const [selectedAnswer, setSelectedAnswer] = useState(null);
             const [isFinished, setIsFinished] = useState(false);
         
-            // FIX: Only define currentWord if the queue has words in it
-            const currentWord = queue.length > 0 ? queue[currentIndex] : null;
+            // Helper to shuffle
+            const shuffle = (array) => [...array].sort(() => Math.random() - 0.5);
+        
+            // SAFETY CHECK: Get the current word only if queue exists
+            const currentWord = (queue && queue.length > 0) ? queue[currentIndex] : null;
         
             // STEP 2: THE LOBBY GATE
+            // If we haven't picked a direction, show the menu and STOP here.
             if (!practiceDirection) {
                 return (
                     <div style={{ width: '100%', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -440,7 +443,8 @@
                     </div>
                 );
             }
-                
+        
+            // 3. Game Logic (Only runs after a button is clicked)
             const options = useMemo(() => {
                 if (!currentWord) return [];
                 const isToWord = practiceDirection === 'toWord';
@@ -456,10 +460,9 @@
             }, [currentWord, practiceDirection]);
         
             const handleAnswer = (choice) => {
-                if (selectedAnswer) return; 
+                if (selectedAnswer || !currentWord) return; 
                 setSelectedAnswer(choice);
         
-                // This determines the "True" answer based on your choice
                 const correctAnswer = practiceDirection === 'toTranslation' 
                     ? currentWord.translation 
                     : currentWord.word;
@@ -468,7 +471,6 @@
                     if (!hasAttemptedCurrent && currentIndex < deck.words.length) {
                         setFirstTryCorrect(prev => prev + 1);
                     }
-                    
                     setTimeout(() => {
                         if (currentIndex < queue.length - 1) {
                             setCurrentIndex(prev => prev + 1);
@@ -482,7 +484,6 @@
                     setWrongAttempts(prev => prev + 1);
                     setHasAttemptedCurrent(true);
                     setQueue(prev => [...prev, currentWord]);
-                    
                     setTimeout(() => {
                         setSelectedAnswer(null);
                         setCurrentIndex(prev => prev + 1);
@@ -491,6 +492,7 @@
                 }
             };
         
+            // If game is over, show results
             if (isFinished) {
                 return (
                     <div style={{ width: '100%', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
@@ -508,6 +510,7 @@
                 );
             }
         
+            // MAIN GAME SCREEN
             return (
                 <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <div style={{ color: 'white', marginBottom: '1rem' }}>
@@ -520,7 +523,6 @@
                         </h1>                        
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%' }}>
                             {options.map((option, i) => {
-                                // Dynamic color check
                                 const correctAnswer = practiceDirection === 'toTranslation' ? currentWord.translation : currentWord.word;
                                 const isSelected = selectedAnswer === option;
                                 const isCorrect = option === correctAnswer;
