@@ -404,7 +404,8 @@
             const [selectedAnswer, setSelectedAnswer] = useState(null);
             const [isFinished, setIsFinished] = useState(false);
         
-            const currentWord = queue[currentIndex];
+            // FIX: Only define currentWord if the queue has words in it
+            const currentWord = queue.length > 0 ? queue[currentIndex] : null;
         
             // STEP 2: THE LOBBY GATE
             if (!practiceDirection) {
@@ -439,7 +440,7 @@
                     </div>
                 );
             }
-        
+                
             const options = useMemo(() => {
                 if (!currentWord) return [];
                 const isToWord = practiceDirection === 'toWord';
