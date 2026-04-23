@@ -321,6 +321,12 @@
                     name: 'Penguin Game',
                     description: 'Match words in an interactive game',
                     icon: '🐧'
+                },
+                { 
+                    id: 'whack-a-mole', 
+                    name: 'Whack-a-Mole',
+                    description: 'Whack the mole with the correct translation',
+                    icon: '🔨'
                 }
             ];
 
@@ -999,6 +1005,312 @@
                 </div>
             );
         };
+
+        // Whack-a-Mole Mode
+        const WhackAMoleMode = ({ deckKey, onBack }) => {
+            const deck = getDeck(deckKey);
+            const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+
+            const MOLE_COUNT = 6;
+            const ROUND_TIME = 45;
+
+            const [currentWord, setCurrentWord] = useState(null);
+            const [moles, setMoles] = useState(Array(MOLE_COUNT).fill(null));
+            const [score, setScore] = useState(0);
+            const [misses, setMisses] = useState(0);
+            const [timeLeft, setTimeLeft] = useState(ROUND_TIME);
+            const [isFinished, setIsFinished] = useState(false);
+            const [whacked, setWhacked] = useState(null);
+            const [wrongWhacked, setWrongWhacked] = useState(null);
+            const [started, setStarted] = useState(false);
+            const wordPoolRef = useRef([]);
+            const moleTimersRef = useRef([]);
+            const wordRef = useRef(null);
+
+            const getNewWord = () => {
+                if (wordPoolRef.current.length === 0) {
+                    wordPoolRef.current = shuffle([...deck.words]);
+                }
+                return wordPoolRef.current.pop();
+            };
+
+            const spawnMole = (index, allMoles, correctTranslation) => {
+                const isCorrect = Math.random() < 0.35;
+                let text;
+                if (isCorrect) {
+                    text = correctTranslation;
+                } else {
+                    const distractors = deck.words
+                        .filter(w => w.translation !== correctTranslation)
+                        .map(w => w.translation);
+                    text = shuffle(distractors)[0];
+                }
+                return { text, isCorrect, visible: true };
+            };
+
+            const rotateMole = (index) => {
+                if (moleTimersRef.current[index]) clearTimeout(moleTimersRef.current[index]);
+                const delay = 1200 + Math.random() * 1800;
+                moleTimersRef.current[index] = setTimeout(() => {
+                    setMoles(prev => {
+                        const updated = [...prev];
+                        const word = wordRef.current;
+                        if (!word) return prev;
+                        updated[index] = spawnMole(index, prev, word.translation);
+                        return updated;
+                    });
+                    rotateMole(index);
+                }, delay);
+            };
+
+            useEffect(() => {
+                if (!started) return;
+                wordPoolRef.current = shuffle([...deck.words]);
+                const firstWord = getNewWord();
+                wordRef.current = firstWord;
+                setCurrentWord(firstWord);
+
+                const initialMoles = Array(MOLE_COUNT).fill(null).map((_, i) =>
+                    spawnMole(i, [], firstWord.translation)
+                );
+                setMoles(initialMoles);
+
+                for (let i = 0; i < MOLE_COUNT; i++) rotateMole(i);
+
+                const timer = setInterval(() => {
+                    setTimeLeft(prev => {
+                        if (prev <= 1) {
+                            clearInterval(timer);
+                            moleTimersRef.current.forEach(clearTimeout);
+                            setIsFinished(true);
+                            return 0;
+                        }
+                        return prev - 1;
+                    });
+                }, 1000);
+
+                return () => {
+                    clearInterval(timer);
+                    moleTimersRef.current.forEach(clearTimeout);
+                };
+            }, [started]);
+
+            const advanceWord = () => {
+                const nextWord = getNewWord();
+                wordRef.current = nextWord;
+                setCurrentWord(nextWord);
+                setMoles(prev => prev.map((_, i) =>
+                    spawnMole(i, prev, nextWord.translation)
+                ));
+            };
+
+            const handleWhack = (index) => {
+                const mole = moles[index];
+                if (!mole || !mole.visible) return;
+
+                if (mole.isCorrect) {
+                    setWhacked(index);
+                    setScore(s => s + 1);
+                    setTimeout(() => {
+                        setWhacked(null);
+                        setMoles(prev => {
+                            const updated = [...prev];
+                            updated[index] = { ...updated[index], visible: false };
+                            return updated;
+                        });
+                        advanceWord();
+                    }, 400);
+                } else {
+                    setWrongWhacked(index);
+                    setMisses(m => m + 1);
+                    setTimeout(() => setWrongWhacked(null), 400);
+                }
+            };
+
+            const moleColors = ['#f97316','#ec4899','#8b5cf6','#06b6d4','#10b981','#f59e0b'];
+
+            if (!started) {
+                return (
+                    <div style={{
+                        width: '100%', height: '100vh', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center',
+                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
+                    }}>
+                        <button onClick={onBack} style={{
+                            position: 'absolute', top: '2rem', left: '2rem',
+                            backgroundColor: 'rgba(255,255,255,0.15)', border: 'none', color: 'white',
+                            padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: 'pointer',
+                            fontSize: '1rem', fontWeight: '600'
+                        }}>← Back</button>
+                        <div style={{ fontSize: '5rem', marginBottom: '1rem' }}>🔨</div>
+                        <h1 style={{ color: 'white', fontSize: '2.5rem', fontWeight: '900', marginBottom: '0.5rem', letterSpacing: '-1px' }}>
+                            Whack-a-Mole
+                        </h1>
+                        <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '0.5rem', fontSize: '1.1rem', textAlign: 'center', maxWidth: '320px' }}>
+                            A word appears at the top. Whack the mole showing the correct translation!
+                        </p>
+                        <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '2.5rem', fontSize: '0.9rem' }}>
+                            You have {ROUND_TIME} seconds
+                        </p>
+                        <button onClick={() => setStarted(true)} style={{
+                            backgroundColor: '#f97316', color: 'white', border: 'none',
+                            padding: '1rem 3rem', borderRadius: '2rem', cursor: 'pointer',
+                            fontSize: '1.25rem', fontWeight: '800', letterSpacing: '1px',
+                            boxShadow: '0 0 30px rgba(249,115,22,0.5)'
+                        }}>
+                            START
+                        </button>
+                    </div>
+                );
+            }
+
+            if (isFinished) {
+                return (
+                    <div style={{
+                        width: '100%', height: '100vh', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center',
+                        background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
+                    }}>
+                        <div style={{
+                            backgroundColor: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)',
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            padding: '3rem', borderRadius: '1.5rem',
+                            textAlign: 'center', maxWidth: '380px', width: '90%'
+                        }}>
+                            <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>
+                                {score >= 10 ? '🏆' : score >= 5 ? '🌟' : '🔨'}
+                            </div>
+                            <h2 style={{ color: 'white', fontSize: '2rem', fontWeight: '900', marginBottom: '1.5rem' }}>
+                                Time's Up!
+                            </h2>
+                            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '2rem' }}>
+                                <div style={{ backgroundColor: 'rgba(249,115,22,0.2)', border: '1px solid #f97316', borderRadius: '1rem', padding: '1rem 1.5rem' }}>
+                                    <div style={{ color: '#f97316', fontSize: '2rem', fontWeight: '900' }}>{score}</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem' }}>WHACKED</div>
+                                </div>
+                                <div style={{ backgroundColor: 'rgba(239,68,68,0.2)', border: '1px solid #ef4444', borderRadius: '1rem', padding: '1rem 1.5rem' }}>
+                                    <div style={{ color: '#ef4444', fontSize: '2rem', fontWeight: '900' }}>{misses}</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.8rem' }}>MISSES</div>
+                                </div>
+                            </div>
+                            <button onClick={onBack} style={{
+                                backgroundColor: '#f97316', color: 'white', border: 'none',
+                                padding: '0.85rem 2.5rem', borderRadius: '2rem', cursor: 'pointer',
+                                fontWeight: '800', fontSize: '1rem'
+                            }}>
+                                Back to Menu
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div style={{
+                    width: '100%', height: '100vh', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center',
+                    background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+                    padding: '1.5rem', userSelect: 'none'
+                }}>
+                    {/* Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '520px', marginBottom: '1.5rem' }}>
+                        <button onClick={onBack} style={{
+                            backgroundColor: 'rgba(255,255,255,0.1)', border: 'none', color: 'white',
+                            padding: '0.4rem 0.9rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '600'
+                        }}>← Back</button>
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            <span style={{ color: '#f97316', fontWeight: '800', fontSize: '1.1rem' }}>⚡ {score}</span>
+                            <span style={{ color: '#ef4444', fontWeight: '800', fontSize: '1.1rem' }}>✗ {misses}</span>
+                            <span style={{
+                                color: timeLeft <= 10 ? '#ef4444' : 'white',
+                                fontWeight: '900', fontSize: '1.25rem',
+                                animation: timeLeft <= 10 ? 'pulse 1s infinite' : 'none'
+                            }}>⏱ {timeLeft}s</span>
+                        </div>
+                    </div>
+
+                    {/* Word to translate */}
+                    <div style={{
+                        backgroundColor: 'rgba(255,255,255,0.08)',
+                        border: '2px solid rgba(249,115,22,0.5)',
+                        borderRadius: '1.25rem', padding: '1.25rem 2.5rem',
+                        marginBottom: '2rem', textAlign: 'center',
+                        boxShadow: '0 0 30px rgba(249,115,22,0.15)'
+                    }}>
+                        <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '0.25rem' }}>
+                            Whack the correct translation of
+                        </p>
+                        <p style={{ color: 'white', fontSize: '2.5rem', fontWeight: '900', letterSpacing: '-1px' }}>
+                            {currentWord?.word}
+                        </p>
+                    </div>
+
+                    {/* Mole grid */}
+                    <div style={{
+                        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '1rem', width: '100%', maxWidth: '520px'
+                    }}>
+                        {moles.map((mole, i) => {
+                            const isWhacked = whacked === i;
+                            const isWrong = wrongWhacked === i;
+                            const color = moleColors[i];
+                            return (
+                                <div
+                                    key={i}
+                                    onClick={() => handleWhack(i)}
+                                    style={{
+                                        position: 'relative', height: '100px',
+                                        cursor: mole?.visible ? 'pointer' : 'default',
+                                        display: 'flex', alignItems: 'flex-end', justifyContent: 'center'
+                                    }}
+                                >
+                                    {/* Hole */}
+                                    <div style={{
+                                        position: 'absolute', bottom: 0,
+                                        width: '100%', height: '28px',
+                                        backgroundColor: '#0a0a1a',
+                                        borderRadius: '50%',
+                                        border: '2px solid rgba(255,255,255,0.05)'
+                                    }} />
+                                    {/* Mole */}
+                                    <div style={{
+                                        position: 'absolute',
+                                        bottom: isWhacked ? '-20px' : isWrong ? '20px' : mole?.visible ? '18px' : '-10px',
+                                        transition: 'bottom 0.2s ease',
+                                        width: '76px', height: '76px',
+                                        borderRadius: '50% 50% 45% 45%',
+                                        backgroundColor: isWhacked ? '#10b981' : isWrong ? '#ef4444' : color,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        boxShadow: `0 4px 20px ${color}66`,
+                                        border: `3px solid ${isWhacked ? '#10b981' : isWrong ? '#ef4444' : color}`,
+                                        zIndex: 2
+                                    }}>
+                                        {/* Eyes */}
+                                        <div style={{ position: 'absolute', top: '20px', display: 'flex', gap: '14px' }}>
+                                            <div style={{ width: '8px', height: '8px', backgroundColor: isWhacked ? '#fff' : '#1a1a2e', borderRadius: '50%' }} />
+                                            <div style={{ width: '8px', height: '8px', backgroundColor: isWhacked ? '#fff' : '#1a1a2e', borderRadius: '50%' }} />
+                                        </div>
+                                        {/* Label */}
+                                        <div style={{
+                                            position: 'absolute', bottom: '-32px',
+                                            backgroundColor: 'rgba(0,0,0,0.75)',
+                                            color: 'white', fontSize: '0.75rem', fontWeight: '700',
+                                            padding: '3px 8px', borderRadius: '6px',
+                                            whiteSpace: 'nowrap', maxWidth: '90px',
+                                            overflow: 'hidden', textOverflow: 'ellipsis',
+                                            textAlign: 'center'
+                                        }}>
+                                            {mole?.text}
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            );
+        };
+        
         // Penguin Game Mode (integrated from original code)
         const PenguinGameMode = ({ deckKey, onBack }) => {
             const deck = getDeck(deckKey);
@@ -1469,6 +1781,8 @@
                     return <HandwriteMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
                 case 'penguin-game':
                     return <PenguinGameMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
+                case 'whack-a-mole':
+                    return <WhackAMoleMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
                 default:
                     return <HomePage onSelectDeck={handleSelectDeck} />;
             }
