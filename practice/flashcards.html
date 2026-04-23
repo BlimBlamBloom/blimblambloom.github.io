@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<meta name="apple-mobile-web-app-title" content="Flashcards"/>
+<meta name="theme-color" content="#ffffff"/>
+<title>Flashcards</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #ffffff; --bg2: #f5f5f5; --bg3: #e8e8e8;
+  --text: #111111; --text2: #666666;
+  --border: rgba(0,0,0,0.13);
+  --green-bg: #e8f5e9; --green-text: #2e7d32; --green-border: #a5d6a7;
+  --red-bg: #ffebee; --red-text: #c62828; --red-border: #ef9a9a;
+  --radius: 12px; --radius-sm: 8px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1a1a1a; --bg2: #252525; --bg3: #333333;
+    --text: #f0f0f0; --text2: #999999;
+    --border: rgba(255,255,255,0.12);
+    --green-bg: #1b3a1c; --green-text: #81c784; --green-border: #388e3c;
+    --red-bg: #3b1a1a; --red-text: #ef9a9a; --red-border: #c62828;
+  }
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; background: var(--bg); color: var(--text); min-height: 100vh; }
+#pw-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 32px 24px; }
+#pw-screen h1 { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+#pw-screen p { font-size: 14px; color: var(--text2); margin-bottom: 28px; }
+#pw-input { width: 100%; max-width: 320px; padding: 13px 14px; font-size: 16px; font-family: inherit; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 10px; outline: none; }
+#pw-input:focus { border-color: var(--text2); }
+#pw-btn { width: 100%; max-width: 320px; padding: 13px; font-size: 15px; font-weight: 500; font-family: inherit; background: var(--text); color: var(--bg); border: none; border-radius: var(--radius-sm); cursor: pointer; }
+#pw-error { font-size: 13px; color: var(--red-text); margin-top: 10px; min-height: 18px; }
+#app { display: none; }
+.screen { display: none; padding: 16px; max-width: 500px; margin: 0 auto; padding-top: max(env(safe-area-inset-top), 16px); padding-bottom: max(env(safe-area-inset-bottom), 16px); }
+.screen.active { display: block; }
+.page-header { padding: 8px 0 18px; }
+h1 { font-size: 22px; font-weight: 600; }
+h2 { font-size: 18px; font-weight: 600; margin-bottom: 14px; }
+.subtitle { font-size: 14px; color: var(--text2); margin-top: 3px; }
+.back-btn { background: none; border: none; color: var(--text2); font-size: 14px; cursor: pointer; padding: 0 0 14px; display: flex; align-items: center; gap: 4px; font-family: inherit; }
+.card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; cursor: pointer; }
+.card:active { background: var(--bg2); }
+.card-title { font-weight: 500; font-size: 16px; }
+.card-meta { font-size: 12px; color: var(--text2); margin-top: 5px; line-height: 1.7; }
+.mode-btn { display: block; width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 10px; cursor: pointer; text-align: left; font-size: 15px; font-family: inherit; color: var(--text); }
+.mode-btn:active { background: var(--bg2); }
+.mode-name { font-weight: 500; }
+.mode-desc { font-size: 13px; color: var(--text2); margin-top: 3px; }
+.dir-toggle { display: flex; margin-bottom: 18px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.dir-toggle button { flex: 1; padding: 10px 8px; border: none; background: var(--bg); color: var(--text2); font-size: 13px; font-family: inherit; cursor: pointer; }
+.dir-toggle button.active { background: var(--text); color: var(--bg); }
+.dir-toggle button:first-child { border-right: 1px solid var(--border); }
+.flashcard { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 36px 24px; text-align: center; min-height: 155px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-bottom: 16px; }
+.card-word { font-size: 30px; font-weight: 600; line-height: 1.3; }
+.card-hint { font-size: 13px; color: var(--text2); margin-top: 10px; }
+.progress-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.progress-label { font-size: 13px; color: var(--text2); white-space: nowrap; }
+.score-bar-wrap { flex: 1; background: var(--bg3); border-radius: 4px; height: 6px; }
+.score-bar { background: var(--text); border-radius: 4px; height: 6px; transition: width 0.3s; }
+.retry-badge { font-size: 11px; background: var(--red-bg); color: var(--red-text); border: 1px solid var(--red-border); border-radius: 99px; padding: 2px 8px; margin-left: 6px; }
+.choice-btn { display: block; width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 16px; margin-bottom: 8px; cursor: pointer; text-align: left; font-size: 15px; font-family: inherit; color: var(--text); }
+.choice-btn:disabled { cursor: default; }
+.choice-btn.correct { background: var(--green-bg); border-color: var(--green-border); color: var(--green-text); }
+.choice-btn.wrong { background: var(--red-bg); border-color: var(--red-border); color: var(--red-text); }
+.answer-input { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 14px; font-size: 16px; font-family: inherit; background: var(--bg); color: var(--text); margin-bottom: 10px; outline: none; }
+.answer-input:focus { border-color: var(--text2); }
+.primary-btn { display: block; width: 100%; padding: 13px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg); font-size: 15px; font-family: inherit; color: var(--text); cursor: pointer; font-weight: 500; margin-bottom: 8px; }
+.primary-btn:active { background: var(--bg2); }
+.primary-btn.accent { background: var(--text); color: var(--bg); border-color: var(--text); }
+.primary-btn.accent:active { opacity: 0.8; }
+.btn-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.btn-row .primary-btn { margin-bottom: 0; }
+canvas { border: 1px solid var(--border); border-radius: var(--radius-sm); display: block; touch-action: none; cursor: crosshair; width: 100%; max-width: 420px; }
+.result-msg { font-size: 14px; color: var(--text2); margin: 10px 0 4px; min-height: 20px; line-height: 1.5; }
+#audio-status { font-size: 14px; color: var(--text2); margin: 10px 0; min-height: 44px; line-height: 1.6; }
+.results-score { font-size: 56px; font-weight: 700; text-align: center; margin: 28px 0 6px; }
+.results-sub { text-align: center; color: var(--text2); font-size: 14px; margin-bottom: 32px; }
+</style>
+</head>
+<body>
+
+<div id="pw-screen">
+  <h1>Flashcards</h1>
+  <p>Enter your password to continue</p>
+  <input id="pw-input" type="password" placeholder="Password" autocomplete="current-password"/>
+  <button id="pw-btn" onclick="checkPassword()">Unlock</button>
+  <div id="pw-error"></div>
+</div>
+
+<div id="app">
+  <div id="screen-home" class="screen">
+    <div class="page-header"><h1>Flashcards</h1><div class="subtitle">Choose a language to study</div></div>
+    <div id="folder-list"></div>
+  </div>
+
+  <div id="screen-decks" class="screen">
+    <button class="back-btn" onclick="showHome()">&#8592; back</button>
+    <h2 id="deck-lang-title"></h2>
+    <div id="deck-list"></div>
+  </div>
+
+  <div id="screen-direction" class="screen">
+    <button class="back-btn" onclick="showDecks(currentLang)">&#8592; back</button>
+    <h2 id="dir-deck-title"></h2>
+    <p class="subtitle" style="margin-bottom:16px;">Which direction do you want to practice?</p>
+    <div id="dir-options"></div>
+  </div>
+
+  <div id="screen-modes" class="screen">
+    <button class="back-btn" onclick="showDirection(currentDeck)">&#8592; back</button>
+    <h2 id="mode-deck-title"></h2>
+    <div class="dir-toggle">
+      <button id="dir-btn-a" onclick="setDir('front')" class="active"></button>
+      <button id="dir-btn-b" onclick="setDir('back')"></button>
+    </div>
+    <p class="subtitle" style="margin-bottom:16px;">Choose a practice mode</p>
+    <button class="mode-btn" onclick="startMode('multiple')"><div class="mode-name">Multiple choice</div><div class="mode-desc">Pick the correct answer from 4 options</div></button>
+    <button class="mode-btn" onclick="startMode('type')"><div class="mode-name">Type the answer</div><div class="mode-desc">Type the translation from memory</div></button>
+    <button class="mode-btn" onclick="startMode('write')"><div class="mode-name">Write by hand</div><div class="mode-desc">Draw the answer with your finger or stylus</div></button>
+    <button class="mode-btn" onclick="startMode('audio')"><div class="mode-name">Audio</div><div class="mode-desc">Listen and speak the answer</div></button>
+  </div>
+
+  <div id="screen-practice" class="screen">
+    <button class="back-btn" onclick="showModes(currentDeck)">&#8592; back</button>
+    <div class="progress-row">
+      <span class="progress-label" id="progress-label"></span>
+      <div class="score-bar-wrap"><div class="score-bar" id="score-bar"></div></div>
+    </div>
+    <div class="flashcard">
+      <div class="card-word" id="card-word"></div>
+      <div class="card-hint" id="card-hint"></div>
+    </div>
+    <div id="practice-controls"></div>
+    <div class="result-msg" id="result-msg"></div>
+  </div>
+
+  <div id="screen-results" class="screen">
+    <h2>Session complete</h2>
+    <div class="results-score" id="final-score-display"></div>
+    <div class="results-sub" id="final-score-label"></div>
+    <button class="primary-btn accent" onclick="showModes(currentDeck)">Practice again</button>
+    <button class="primary-btn" onclick="showDecks(currentLang)">Back to decks</button>
+  </div>
+</div>
+
+<script>
+const PASSWORD = 'changeme'; // <-- change before uploading
+
+function checkPassword() {
+  if (document.getElementById('pw-input').value === PASSWORD) {
+    sessionStorage.setItem('fc_auth', '1');
+    document.getElementById('pw-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    showHome();
+  } else {
+    document.getElementById('pw-error').textContent = 'Incorrect password.';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+  }
+}
+document.getElementById('pw-input').addEventListener('keydown', e => { if (e.key === 'Enter') checkPassword(); });
+if (sessionStorage.getItem('fc_auth') === '1') {
+  document.getElementById('pw-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+const LANGS = {
+  Polish:   { code: 'pl-PL',  flag: '🇵🇱' },
+  Tagalog:  { code: 'fil-PH', flag: '🇵🇭' },
+  Chinese:  { code: 'zh-CN',  flag: '🇨🇳' },
+  Japanese: { code: 'ja-JP',  flag: '🇯🇵' }
+};
+
+const DECKS = {
+  Polish: [
+    { id: 'pl-basics', name: 'Basics', frontLabel: 'English', backLabel: 'Polish', cards: [
+      {front:'apple',back:'jabłko'},{front:'water',back:'woda'},{front:'house',back:'dom'},
+      {front:'cat',back:'kot'},{front:'dog',back:'pies'},{front:'book',back:'książka'},
+      {front:'bread',back:'chleb'},{front:'sun',back:'słońce'},{front:'friend',back:'przyjaciel'},{front:'thank you',back:'dziękuję'}
+    ]},
+    { id: 'pl-numbers', name: 'Numbers', frontLabel: 'English', backLabel: 'Polish', cards: [
+      {front:'one',back:'jeden'},{front:'two',back:'dwa'},{front:'three',back:'trzy'},
+      {front:'four',back:'cztery'},{front:'five',back:'pięć'},{front:'six',back:'sześć'},
+      {front:'seven',back:'siedem'},{front:'eight',back:'osiem'},{front:'nine',back:'dziewięć'},{front:'ten',back:'dziesięć'}
+    ]}
+  ],
+  Tagalog: [
+    { id: 'tl-basics', name: 'Basics', frontLabel: 'English', backLabel: 'Tagalog', cards: [
+      {front:'water',back:'tubig'},{front:'food',back:'pagkain'},{front:'house',back:'bahay'},
+      {front:'person',back:'tao'},{front:'dog',back:'aso'},{front:'cat',back:'pusa'},
+      {front:'friend',back:'kaibigan'},{front:'good morning',back:'magandang umaga'},{front:'thank you',back:'salamat'},{front:'yes',back:'oo'}
+    ]},
+    { id: 'tl-colors', name: 'Colors', frontLabel: 'English', backLabel: 'Tagalog', cards: [
+      {front:'red',back:'pula'},{front:'blue',back:'asul'},{front:'green',back:'berde'},
+      {front:'white',back:'puti'},{front:'black',back:'itim'},{front:'yellow',back:'dilaw'},
+      {front:'orange',back:'kahel'},{front:'pink',back:'rosas'},{front:'purple',back:'lila'},{front:'brown',back:'kayumanggi'}
+    ]}
+  ],
+  Chinese: [
+    { id: 'zh-basics', name: 'Basics', frontLabel: 'English', backLabel: 'Chinese', cards: [
+      {front:'water',back:'水 (shuǐ)'},{front:'fire',back:'火 (huǒ)'},{front:'person',back:'人 (rén)'},
+      {front:'mountain',back:'山 (shān)'},{front:'sun',back:'太阳 (tàiyáng)'},{front:'moon',back:'月 (yuè)'},
+      {front:'tree',back:'树 (shù)'},{front:'cat',back:'猫 (māo)'},{front:'dog',back:'狗 (gǒu)'},{front:'thank you',back:'谢谢 (xièxie)'}
+    ]},
+    { id: 'zh-numbers', name: 'Numbers', frontLabel: 'English', backLabel: 'Chinese', cards: [
+      {front:'one',back:'一 (yī)'},{front:'two',back:'二 (èr)'},{front:'three',back:'三 (sān)'},
+      {front:'four',back:'四 (sì)'},{front:'five',back:'五 (wǔ)'},{front:'six',back:'六 (liù)'},
+      {front:'seven',back:'七 (qī)'},{front:'eight',back:'八 (bā)'},{front:'nine',back:'九 (jiǔ)'},{front:'ten',back:'十 (shí)'}
+    ]}
+  ],
+  Japanese: [
+    { id: 'ja-basics', name: 'Basics', frontLabel: 'English', backLabel: 'Japanese', cards: [
+      {front:'water',back:'水 (mizu)'},{front:'fire',back:'火 (hi)'},{front:'person',back:'人 (hito)'},
+      {front:'cat',back:'猫 (neko)'},{front:'dog',back:'犬 (inu)'},{front:'book',back:'本 (hon)'},
+      {front:'mountain',back:'山 (yama)'},{front:'river',back:'川 (kawa)'},{front:'thank you',back:'ありがとう (arigatō)'},{front:'yes',back:'はい (hai)'}
+    ]},
+    { id: 'ja-colors', name: 'Colors', frontLabel: 'English', backLabel: 'Japanese', cards: [
+      {front:'red',back:'赤 (aka)'},{front:'blue',back:'青 (ao)'},{front:'white',back:'白 (shiro)'},
+      {front:'black',back:'黒 (kuro)'},{front:'yellow',back:'黄色 (kiiro)'},{front:'green',back:'緑 (midori)'},
+      {front:'pink',back:'ピンク (pinku)'},{front:'orange',back:'オレンジ (orenji)'},{front:'purple',back:'紫 (murasaki)'},{front:'brown',back:'茶色 (chairo)'}
+    ]}
+  ]
+};
+
+const STORAGE_KEY = 'fc_stats';
+function getStats() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch(e) { return {}; } }
+function saveStats(s) { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch(e) {} }
+function fmtDate(ts) {
+  if (!ts) return null;
+  const diff = (Date.now() - ts) / 86400000;
+  if (diff < 1) return 'Today';
+  if (diff < 2) return 'Yesterday';
+  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+// State
+let currentLang = null, currentDeck = null, currentMode = null, currentDir = 'front';
+let cards = [], idx = 0, originalCount = 0;
+let scoredSet = {}, wrongQueue = [];
+let isDrawing = false, recognition = null;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+function showHome() {
+  const fl = document.getElementById('folder-list');
+  fl.innerHTML = '';
+  Object.entries(DECKS).forEach(([lang, decks]) => {
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.onclick = () => showDecks(lang);
+    div.innerHTML = `<div class="card-title">${LANGS[lang].flag} ${lang}</div><div class="card-meta">${decks.length} deck${decks.length > 1 ? 's' : ''}</div>`;
+    fl.appendChild(div);
+  });
+  showScreen('screen-home');
+}
+
+function showDecks(lang) {
+  currentLang = lang;
+  const stats = getStats();
+  document.getElementById('deck-lang-title').textContent = LANGS[lang].flag + ' ' + lang;
+  const dl = document.getElementById('deck-list');
+  dl.innerHTML = '';
+  DECKS[lang].forEach(deck => {
+    const s = stats[deck.id];
+    const div = document.createElement('div');
+    div.className = 'card';
+    div.onclick = () => showDirection(deck);
+    let metaHTML = `${deck.cards.length} cards`;
+    if (s) {
+      metaHTML += `<br>Last practiced: ${fmtDate(s.lastPracticed)}<br>Last score: ${s.lastScore}%`;
+    } else {
+      metaHTML += `<br>Not yet practiced`;
+    }
+    div.innerHTML = `<div class="card-title">${deck.name}</div><div class="card-meta">${metaHTML}</div>`;
+    dl.appendChild(div);
+  });
+  showScreen('screen-decks');
+}
+
+function showDirection(deck) {
+  currentDeck = deck;
+  document.getElementById('dir-deck-title').textContent = deck.name;
+  const opts = document.getElementById('dir-options');
+  opts.innerHTML = '';
+  const fwd = document.createElement('button');
+  fwd.className = 'mode-btn';
+  fwd.innerHTML = `<div class="mode-name">${deck.frontLabel} → ${deck.backLabel}</div><div class="mode-desc">See ${deck.frontLabel}, answer in ${deck.backLabel}</div>`;
+  fwd.onclick = () => { currentDir = 'front'; showModes(deck); };
+  const rev = document.createElement('button');
+  rev.className = 'mode-btn';
+  rev.innerHTML = `<div class="mode-name">${deck.backLabel} → ${deck.frontLabel}</div><div class="mode-desc">See ${deck.backLabel}, answer in ${deck.frontLabel}</div>`;
+  rev.onclick = () => { currentDir = 'back'; showModes(deck); };
+  opts.appendChild(fwd);
+  opts.appendChild(rev);
+  showScreen('screen-direction');
+}
+
+function showModes(deck) {
+  currentDeck = deck;
+  document.getElementById('mode-deck-title').textContent = deck.name;
+  const btnA = document.getElementById('dir-btn-a');
+  const btnB = document.getElementById('dir-btn-b');
+  btnA.textContent = deck.frontLabel + ' → ' + deck.backLabel;
+  btnB.textContent = deck.backLabel + ' → ' + deck.frontLabel;
+  btnA.classList.toggle('active', currentDir === 'front');
+  btnB.classList.toggle('active', currentDir === 'back');
+  showScreen('screen-modes');
+}
+
+function setDir(dir) {
+  currentDir = dir;
+  document.getElementById('dir-btn-a').classList.toggle('active', dir === 'front');
+  document.getElementById('dir-btn-b').classList.toggle('active', dir === 'back');
+}
+
+function sides(card) {
+  return currentDir === 'front'
+    ? { prompt: card.front, answer: card.back }
+    : { prompt: card.back, answer: card.front };
+}
+
+function startMode(mode) {
+  currentMode = mode;
+  cards = [...currentDeck.cards].map((c, i) => ({ ...c, _origIdx: i })).sort(() => Math.random() - 0.5);
+  originalCount = cards.length;
+  idx = 0; scoredSet = {}; wrongQueue = [];
+  renderCard();
+  showScreen('screen-practice');
+}
+
+function updateProgress() {
+  const scored = Object.keys(scoredSet).length;
+  const pct = Math.round((scored / originalCount) * 100);
+  const isRetry = cards[idx] && cards[idx]._retry;
+  document.getElementById('progress-label').innerHTML =
+    `${Math.min(idx + 1, cards.length)} / ${cards.length}` +
+    (isRetry ? ' <span class="retry-badge">retry</span>' : '');
+  document.getElementById('score-bar').style.width = pct + '%';
+}
+
+function renderCard() {
+  updateProgress();
+  document.getElementById('result-msg').textContent = '';
+  const card = cards[idx];
+  const { prompt, answer } = sides(card);
+  const controls = document.getElementById('practice-controls');
+  controls.innerHTML = '';
+
+  if (currentMode === 'multiple') {
+    document.getElementById('card-word').textContent = prompt;
+    document.getElementById('card-hint').textContent = 'Choose the correct translation';
+    const pool = currentDeck.cards
+      .filter(c => sides(c).answer !== answer)
+      .map(c => sides(c).answer)
+      .sort(() => Math.random() - 0.5).slice(0, 3);
+    [answer, ...pool].sort(() => Math.random() - 0.5).forEach(ans => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn'; btn.textContent = ans;
+      btn.onclick = () => handleMultiple(btn, ans, answer, controls);
+      controls.appendChild(btn);
+    });
+
+  } else if (currentMode === 'type') {
+    document.getElementById('card-word').textContent = prompt;
+    document.getElementById('card-hint').textContent = 'Type the translation';
+    const inp = document.createElement('input');
+    inp.type = 'text'; inp.className = 'answer-input'; inp.placeholder = 'Your answer…';
+    inp.autocomplete = 'off'; inp.autocorrect = 'off'; inp.autocapitalize = 'off'; inp.spellcheck = false;
+    const btn = document.createElement('button');
+    btn.className = 'primary-btn accent'; btn.textContent = 'Check';
+    btn.onclick = () => handleType(inp.value, answer);
+    inp.onkeydown = e => { if (e.key === 'Enter') handleType(inp.value, answer); };
+    controls.appendChild(inp); controls.appendChild(btn);
+    setTimeout(() => inp.focus(), 80);
+
+  } else if (currentMode === 'write') {
+    document.getElementById('card-word').textContent = prompt;
+    document.getElementById('card-hint').textContent = 'Write the answer with your finger or stylus';
+    const cvs = document.createElement('canvas');
+    cvs.width = 600; cvs.height = 200;
+    controls.appendChild(cvs);
+    initCanvas(cvs);
+    const row = document.createElement('div'); row.className = 'btn-row'; row.style.marginTop = '10px';
+    const clr = document.createElement('button'); clr.className = 'primary-btn'; clr.textContent = 'Clear';
+    clr.onclick = () => { cvs.getContext('2d').clearRect(0, 0, cvs.width, cvs.height); document.getElementById('result-msg').textContent = ''; removeJudge(); };
+    const rev = document.createElement('button'); rev.className = 'primary-btn'; rev.textContent = 'Reveal answer';
+    rev.onclick = () => { document.getElementById('result-msg').textContent = 'Answer: ' + answer; showSelfJudge(controls); };
+    row.appendChild(clr); row.appendChild(rev); controls.appendChild(row);
+
+  } else if (currentMode === 'audio') {
+    renderAudio(controls, prompt, answer);
+  }
+}
+
+function recordResult(wasCorrect) {
+  const card = cards[idx];
+  // Only score the first time we see each original card
+  if (scoredSet[card._origIdx] === undefined) {
+    scoredSet[card._origIdx] = wasCorrect;
+  }
+  if (!wasCorrect) {
+    wrongQueue.push({ ...card, _retry: true });
+  }
+}
+
+function handleMultiple(btn, chosen, correctAns, controls) {
+  controls.querySelectorAll('.choice-btn').forEach(b => {
+    b.disabled = true;
+    if (b.textContent === correctAns) b.classList.add('correct');
+  });
+  const ok = chosen === correctAns;
+  recordResult(ok);
+  if (ok) { btn.classList.add('correct'); document.getElementById('result-msg').textContent = 'Correct!'; }
+  else { btn.classList.add('wrong'); document.getElementById('result-msg').textContent = 'Incorrect. Answer: ' + correctAns; }
+  setTimeout(nextCard, 1300);
+}
+
+function handleType(val, correctAns) {
+  const clean = v => v.trim().toLowerCase().replace(/\(.*?\)/g, '').trim();
+  const ok = clean(val) === clean(correctAns);
+  recordResult(ok);
+  if (ok) { document.getElementById('result-msg').textContent = 'Correct!'; setTimeout(nextCard, 900); }
+  else { document.getElementById('result-msg').textContent = 'Incorrect. Answer: ' + correctAns; setTimeout(nextCard, 1600); }
+}
+
+function removeJudge() { const j = document.getElementById('judge-row'); if (j) j.remove(); }
+
+function showSelfJudge(controls) {
+  if (document.getElementById('judge-row')) return;
+  const row = document.createElement('div'); row.id = 'judge-row'; row.className = 'btn-row'; row.style.marginTop = '8px';
+  const yes = document.createElement('button'); yes.className = 'primary-btn'; yes.textContent = 'Got it right';
+  yes.onclick = () => { recordResult(true); nextCard(); };
+  const no = document.createElement('button'); no.className = 'primary-btn'; no.textContent = 'Got it wrong';
+  no.onclick = () => { recordResult(false); nextCard(); };
+  row.appendChild(yes); row.appendChild(no); controls.appendChild(row);
+}
+
+function renderAudio(controls, prompt, answer) {
+  document.getElementById('card-word').textContent = '🔊';
+  document.getElementById('card-hint').textContent = 'Listen, then speak the translation';
+  const status = document.createElement('div'); status.id = 'audio-status'; status.textContent = 'Tap Play to hear the word.';
+  controls.appendChild(status);
+  const row = document.createElement('div'); row.className = 'btn-row';
+  const playBtn = document.createElement('button'); playBtn.className = 'primary-btn'; playBtn.textContent = 'Play';
+  playBtn.onclick = () => {
+    const utt = new SpeechSynthesisUtterance(prompt);
+    utt.lang = currentDir === 'back' ? LANGS[currentLang].code : 'en-US';
+    status.textContent = 'Playing…';
+    utt.onend = () => { status.textContent = 'Now speak the translation.'; };
+    speechSynthesis.cancel(); speechSynthesis.speak(utt);
+  };
+  const recLang = currentDir === 'front' ? LANGS[currentLang].code : 'en-US';
+  const recBtn = document.createElement('button'); recBtn.className = 'primary-btn'; recBtn.textContent = 'Speak';
+  recBtn.onclick = () => startRecognition(recLang, answer, status, controls);
+  const skipBtn = document.createElement('button'); skipBtn.className = 'primary-btn'; skipBtn.textContent = 'Skip';
+  skipBtn.onclick = () => { recordResult(false); nextCard(); };
+  row.appendChild(playBtn); row.appendChild(recBtn); row.appendChild(skipBtn);
+  controls.appendChild(row);
+  const reveal = document.createElement('button'); reveal.className = 'primary-btn'; reveal.style.marginTop = '4px'; reveal.textContent = 'Reveal & self-judge';
+  reveal.onclick = () => { status.textContent = 'Answer: ' + answer; showSelfJudge(controls); };
+  controls.appendChild(reveal);
+}
+
+function startRecognition(langCode, expected, statusEl, controls) {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { statusEl.textContent = 'Speech recognition not supported in this browser.'; return; }
+  if (recognition) recognition.abort();
+  recognition = new SR();
+  recognition.lang = langCode; recognition.interimResults = false; recognition.maxAlternatives = 3;
+  statusEl.textContent = 'Listening…';
+  recognition.onresult = e => {
+    const said = Array.from(e.results[0]).map(r => r.transcript.toLowerCase().trim());
+    const exp = expected.toLowerCase().replace(/\(.*?\)/g, '').trim();
+    const ok = said.some(s => s.includes(exp) || exp.includes(s));
+    recordResult(ok);
+    if (ok) { statusEl.textContent = 'Correct! Heard: "' + said[0] + '"'; setTimeout(nextCard, 1200); }
+    else { statusEl.textContent = 'Heard: "' + said[0] + '". Expected: ' + expected; showSelfJudge(controls); }
+  };
+  recognition.onerror = e => { statusEl.textContent = 'Mic error: ' + e.error + '. Use self-judge below.'; showSelfJudge(controls); };
+  recognition.start();
+}
+
+function nextCard() {
+  idx++;
+  if (idx >= cards.length) {
+    if (wrongQueue.length > 0) {
+      // Append wrong cards to the end and keep going
+      cards = cards.concat(wrongQueue);
+      wrongQueue = [];
+      renderCard();
+    } else {
+      endSession();
+    }
+  } else {
+    renderCard();
+  }
+}
+
+function endSession() {
+  const firstCorrect = Object.values(scoredSet).filter(Boolean).length;
+  const score = Math.round((firstCorrect / originalCount) * 100);
+  const stats = getStats();
+  stats[currentDeck.id] = { lastPracticed: Date.now(), lastScore: score };
+  saveStats(stats);
+  document.getElementById('final-score-display').textContent = score + '%';
+  document.getElementById('final-score-label').textContent = firstCorrect + ' of ' + originalCount + ' correct on first attempt';
+  showScreen('screen-results');
+}
+
+function initCanvas(cvs) {
+  const ctx = cvs.getContext('2d');
+  ctx.strokeStyle = window.matchMedia('(prefers-color-scheme: dark)').matches ? '#f0f0f0' : '#111111';
+  ctx.lineWidth = 3; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const pos = e => {
+    const r = cvs.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return { x: (src.clientX - r.left) * (cvs.width / r.width), y: (src.clientY - r.top) * (cvs.height / r.height) };
+  };
+  cvs.onmousedown = cvs.ontouchstart = e => { e.preventDefault(); isDrawing = true; const p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+  cvs.onmousemove = cvs.ontouchmove = e => { e.preventDefault(); if (!isDrawing) return; const p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); };
+  cvs.onmouseup = cvs.ontouchend = cvs.onmouseleave = () => { isDrawing = false; };
+}
+
+if (sessionStorage.getItem('fc_auth') === '1') showHome();
+</script>
+</body>
+</html>
