@@ -774,357 +774,247 @@
 
         // Handwriting Mode
         const HandwriteMode = ({ deckKey, onBack }) => {
-            const deck = vocabularyDecks[deckKey];
+            const deck = getDeck(deckKey);
+            const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+        
+            const [queue, setQueue] = useState(() => shuffle(deck.words));
             const [currentIndex, setCurrentIndex] = useState(0);
-            const [score, setScore] = useState(0);
-            const [completed, setCompleted] = useState(false);
+            const [firstTryCorrect, setFirstTryCorrect] = useState(0);
+            const [hasAttemptedCurrent, setHasAttemptedCurrent] = useState(false);
+            const [showAnswer, setShowAnswer] = useState(false);
+            const [graded, setGraded] = useState(false);
+            const [isFinished, setIsFinished] = useState(false);
             const canvasRef = useRef(null);
-            const [isDrawing, setIsDrawing] = useState(false);
-            const [hasDrawn, setHasDrawn] = useState(false);
-            const [userResponse, setUserResponse] = useState(null);
-
-            const currentWord = deck.words[currentIndex];
-            const showingWord = Math.random() > 0.5;
-
+            const isDrawingRef = useRef(false);
+            const originalDeckSize = deck.words.length;
+        
+            const currentWord = queue[currentIndex];
+        
+            // Set up canvas whenever the card changes
             useEffect(() => {
                 const canvas = canvasRef.current;
                 if (!canvas) return;
-
                 const rect = canvas.getBoundingClientRect();
-                canvas.width = rect.width;
-                canvas.height = rect.height;
-
+                canvas.width = rect.width * window.devicePixelRatio;
+                canvas.height = rect.height * window.devicePixelRatio;
                 const ctx = canvas.getContext('2d');
+                ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
                 ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.strokeStyle = '#333';
+                ctx.fillRect(0, 0, rect.width, rect.height);
+                ctx.strokeStyle = '#222';
                 ctx.lineWidth = 3;
                 ctx.lineCap = 'round';
                 ctx.lineJoin = 'round';
             }, [currentIndex]);
-
-            const handleMouseDown = (e) => {
-                setIsDrawing(true);
-                setHasDrawn(true);
-                const rect = canvasRef.current.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const ctx = canvasRef.current.getContext('2d');
-                ctx.beginPath();
-                ctx.moveTo(x, y);
+        
+            const getPos = (e, canvas) => {
+                const rect = canvas.getBoundingClientRect();
+                if (e.touches) {
+                    return { x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top };
+                }
+                return { x: e.clientX - rect.left, y: e.clientY - rect.top };
             };
-
-            const handleMouseMove = (e) => {
-                if (!isDrawing) return;
-                const rect = canvasRef.current.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
-                const ctx = canvasRef.current.getContext('2d');
-                ctx.lineTo(x, y);
-                ctx.stroke();
-            };
-
-            const handleMouseUp = () => {
-                setIsDrawing(false);
-            };
-
-            const clearCanvas = () => {
+        
+            const startDraw = (e) => {
+                e.preventDefault();
+                isDrawingRef.current = true;
                 const canvas = canvasRef.current;
                 const ctx = canvas.getContext('2d');
+                const pos = getPos(e, canvas);
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+            };
+        
+            const draw = (e) => {
+                e.preventDefault();
+                if (!isDrawingRef.current) return;
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                const pos = getPos(e, canvas);
+                ctx.lineTo(pos.x, pos.y);
+                ctx.stroke();
+            };
+        
+            const endDraw = () => { isDrawingRef.current = false; };
+        
+            const clearCanvas = () => {
+                const canvas = canvasRef.current;
+                const rect = canvas.getBoundingClientRect();
+                const ctx = canvas.getContext('2d');
                 ctx.fillStyle = 'white';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                setHasDrawn(false);
-                setUserResponse(null);
+                ctx.fillRect(0, 0, rect.width, rect.height);
             };
-
-            const handleCheckAnswer = (correct) => {
-                setUserResponse(correct);
+        
+            const handleGrade = (correct) => {
+                setGraded(true);
                 if (correct) {
-                    setScore(score + 1);
-                }
-            };
-
-            const handleNext = () => {
-                if (currentIndex < deck.words.length - 1) {
-                    setCurrentIndex(currentIndex + 1);
-                    setUserResponse(null);
-                    setHasDrawn(false);
+                    if (!hasAttemptedCurrent && currentIndex < originalDeckSize) {
+                        setFirstTryCorrect(prev => prev + 1);
+                    }
                 } else {
-                    setCompleted(true);
+                    setHasAttemptedCurrent(true);
+                    setQueue(prev => [...prev, currentWord]);
                 }
             };
-
-            if (completed) {
+        
+            const handleNext = () => {
+                if (currentIndex < queue.length - 1) {
+                    setCurrentIndex(prev => prev + 1);
+                    setShowAnswer(false);
+                    setGraded(false);
+                    setHasAttemptedCurrent(false);
+                } else {
+                    setIsFinished(true);
+                }
+            };
+        
+            if (isFinished) {
                 return (
                     <div style={{
-                        width: '100%',
-                        height: '100vh',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        padding: '2rem'
+                        width: '100%', height: '100vh', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
                     }}>
                         <div style={{
-                            backgroundColor: 'white',
-                            borderRadius: '1.5rem',
-                            padding: '3rem',
-                            textAlign: 'center',
-                            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-                            maxWidth: '500px',
-                            animation: 'fadeIn 0.6s ease-out'
+                            backgroundColor: 'white', padding: '3rem', borderRadius: '1.5rem',
+                            textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                            maxWidth: '400px', width: '90%'
                         }}>
                             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
-                                {score === deck.words.length ? '🎉' : '✨'}
+                                {firstTryCorrect === originalDeckSize ? '👑' : '✨'}
                             </div>
-                            <h2 style={{
-                                fontSize: '2rem',
-                                fontWeight: 'bold',
-                                marginBottom: '1rem',
-                                color: '#333'
-                            }}>
-                                Completed!
-                            </h2>
-                            <p style={{
-                                fontSize: '1.25rem',
-                                marginBottom: '2rem',
-                                color: '#666'
-                            }}>
-                                You scored <strong>{score}/{deck.words.length}</strong>
+                            <h2 style={{ color: '#333', fontSize: '2rem', marginBottom: '1rem' }}>Results</h2>
+                            <p style={{ fontSize: '1.5rem', color: '#666', marginBottom: '2rem' }}>
+                                Score: <strong>{firstTryCorrect} / {originalDeckSize}</strong>
                             </p>
-                            <button
-                                onClick={onBack}
-                                style={{
-                                    backgroundColor: '#667eea',
-                                    color: 'white',
-                                    border: 'none',
-                                    padding: '0.75rem 2rem',
-                                    borderRadius: '0.5rem',
-                                    cursor: 'pointer',
-                                    fontSize: '1rem',
-                                    fontWeight: '600',
-                                    transition: 'all 0.3s ease'
-                                }}
-                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#764ba2'}
-                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#667eea'}
-                            >
-                                Back to Modes
+                            <button onClick={onBack} style={{
+                                backgroundColor: '#667eea', color: 'white', border: 'none',
+                                padding: '0.75rem 2rem', borderRadius: '0.5rem',
+                                cursor: 'pointer', fontWeight: '600', fontSize: '1rem'
+                            }}>
+                                Back to Menu
                             </button>
                         </div>
                     </div>
                 );
             }
-
+        
             return (
                 <div style={{
-                    width: '100%',
-                    height: '100vh',
-                    display: 'flex',
-                    flexDirection: 'column',
+                    width: '100%', height: '100vh', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                     padding: '2rem'
                 }}>
-                    <button
-                        onClick={onBack}
-                        style={{
-                            position: 'absolute',
-                            top: '2rem',
-                            left: '2rem',
-                            backgroundColor: 'rgba(255,255,255,0.2)',
-                            border: 'none',
-                            color: 'white',
-                            padding: '0.5rem 1rem',
-                            borderRadius: '0.5rem',
-                            cursor: 'pointer',
-                            fontSize: '1rem',
-                            fontWeight: '600',
-                            transition: 'all 0.3s ease'
-                        }}
-                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)'}
-                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'}
-                    >
-                        ← Back
-                    </button>
-
+                    <button onClick={onBack} style={{
+                        position: 'absolute', top: '2rem', left: '2rem',
+                        backgroundColor: 'rgba(255,255,255,0.2)', border: 'none', color: 'white',
+                        padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: 'pointer',
+                        fontSize: '1rem', fontWeight: '600'
+                    }}>← Back</button>
+        
                     <div style={{
-                        position: 'absolute',
-                        top: '2rem',
-                        right: '2rem',
-                        color: 'white',
-                        fontSize: '1.125rem',
-                        fontWeight: '600'
+                        position: 'absolute', top: '2rem', right: '2rem',
+                        color: 'white', fontSize: '1rem', fontWeight: '600'
                     }}>
-                        {currentIndex + 1}/{deck.words.length} | Score: {score}
+                        Progress: {currentIndex + 1} / {queue.length}
                     </div>
-
-                    <div style={{
-                        flex: 1,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                    }}>
-                        <div style={{
-                            backgroundColor: 'white',
-                            borderRadius: '1.5rem',
-                            padding: '2rem',
-                            maxWidth: '800px',
-                            width: '100%',
-                            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-                            animation: 'fadeIn 0.6s ease-out'
+        
+                    <div style={{ ...cardStyle, maxWidth: '600px' }}>
+                        <p style={{ color: '#888', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
+                            Write the translation in English
+                        </p>
+                        <h2 style={{ fontSize: '3rem', fontWeight: 'bold', color: '#333', marginBottom: '1.5rem' }}>
+                            {currentWord.word}
+                        </h2>
+        
+                        {/* Drawing canvas */}
+                        <canvas
+                            ref={canvasRef}
+                            onMouseDown={startDraw}
+                            onMouseMove={draw}
+                            onMouseUp={endDraw}
+                            onMouseLeave={endDraw}
+                            onTouchStart={startDraw}
+                            onTouchMove={draw}
+                            onTouchEnd={endDraw}
+                            style={{
+                                border: '2px solid #ddd', borderRadius: '0.5rem',
+                                cursor: 'crosshair', display: 'block',
+                                width: '100%', height: '200px',
+                                marginBottom: '1rem', touchAction: 'none'
+                            }}
+                        />
+        
+                        <button onClick={clearCanvas} style={{
+                            width: '100%', padding: '0.6rem', marginBottom: '1rem',
+                            backgroundColor: '#f3f4f6', border: '1px solid #ddd',
+                            borderRadius: '0.5rem', cursor: 'pointer', color: '#555',
+                            fontSize: '0.9rem', fontWeight: '600'
                         }}>
-                            <p style={{
-                                color: '#666',
-                                fontSize: '0.875rem',
-                                marginBottom: '1rem',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.05em'
-                            }}>
-                                {showingWord ? 'Write the English translation' : 'Write the word'}
-                            </p>
-                            
-                            <h2 style={{
-                                fontSize: '2.5rem',
-                                fontWeight: 'bold',
-                                marginBottom: '2rem',
-                                color: '#333',
-                                textAlign: 'center'
-                            }}>
-                                {showingWord ? currentWord.word : currentWord.translation}
-                            </h2>
-
-                            <canvas
-                                ref={canvasRef}
-                                onMouseDown={handleMouseDown}
-                                onMouseMove={handleMouseMove}
-                                onMouseUp={handleMouseUp}
-                                onMouseLeave={handleMouseUp}
+                            Clear ✕
+                        </button>
+        
+                        {/* Show answer toggle */}
+                        {!showAnswer ? (
+                            <button
+                                onClick={() => setShowAnswer(true)}
                                 style={{
-                                    border: '2px solid #ddd',
-                                    borderRadius: '0.75rem',
-                                    cursor: 'crosshair',
-                                    display: 'block',
-                                    width: '100%',
-                                    height: '300px',
-                                    marginBottom: '1.5rem',
-                                    backgroundColor: 'white'
+                                    width: '100%', padding: '0.85rem', backgroundColor: '#667eea',
+                                    color: 'white', border: 'none', borderRadius: '0.5rem',
+                                    cursor: 'pointer', fontWeight: '600', fontSize: '1rem',
+                                    marginBottom: '1rem'
                                 }}
-                            />
-
+                            >Show Answer</button>
+                        ) : (
                             <div style={{
-                                display: 'flex',
-                                gap: '1rem',
-                                marginBottom: '1.5rem'
+                                padding: '0.85rem', borderRadius: '0.5rem', marginBottom: '1rem',
+                                backgroundColor: '#f0f4ff', border: '2px solid #667eea',
+                                fontSize: '1.5rem', fontWeight: 'bold', color: '#333', textAlign: 'center'
                             }}>
-                                <button
-                                    onClick={clearCanvas}
-                                    style={{
-                                        flex: 1,
-                                        padding: '0.75rem',
-                                        backgroundColor: '#ef4444',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '0.75rem',
-                                        cursor: 'pointer',
-                                        fontSize: '1rem',
-                                        fontWeight: '600',
-                                        transition: 'all 0.3s ease'
-                                    }}
-                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
-                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
-                                >
-                                    Clear
-                                </button>
-                                {hasDrawn && userResponse === null && (
-                                    <button
-                                        onClick={() => handleCheckAnswer(true)}
-                                        style={{
-                                            flex: 1,
-                                            padding: '0.75rem',
-                                            backgroundColor: '#10b981',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '0.75rem',
-                                            cursor: 'pointer',
-                                            fontSize: '1rem',
-                                            fontWeight: '600',
-                                            transition: 'all 0.3s ease'
-                                        }}
-                                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'}
-                                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#10b981'}
-                                    >
-                                        ✓ I got it right!
-                                    </button>
-                                )}
-                                {hasDrawn && userResponse === null && (
-                                    <button
-                                        onClick={() => handleCheckAnswer(false)}
-                                        style={{
-                                            flex: 1,
-                                            padding: '0.75rem',
-                                            backgroundColor: '#ef4444',
-                                            color: 'white',
-                                            border: 'none',
-                                            borderRadius: '0.75rem',
-                                            cursor: 'pointer',
-                                            fontSize: '1rem',
-                                            fontWeight: '600',
-                                            transition: 'all 0.3s ease'
-                                        }}
-                                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
-                                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#ef4444'}
-                                    >
-                                        ✗ I got it wrong
-                                    </button>
-                                )}
+                                {currentWord.translation}
                             </div>
-
-                            {userResponse !== null && (
-                                <div style={{
-                                    backgroundColor: userResponse ? '#d1fae5' : '#fee2e2',
-                                    color: userResponse ? '#065f46' : '#991b1b',
-                                    padding: '1rem',
-                                    borderRadius: '0.75rem',
-                                    marginBottom: '1.5rem',
-                                    textAlign: 'center',
-                                    fontWeight: '600',
-                                    animation: 'fadeIn 0.3s ease-out'
-                                }}>
-                                    {userResponse ? '✓ Great job!' : 'Better luck next time!'}
-                                    <div style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
-                                        The answer was: <strong>{showingWord ? currentWord.translation : currentWord.word}</strong>
-                                    </div>
-                                </div>
-                            )}
-
-                            {userResponse !== null && (
+                        )}
+        
+                        {/* Self-grade buttons (only after answer is shown and not yet graded) */}
+                        {showAnswer && !graded && (
+                            <div style={{ display: 'flex', gap: '0.75rem' }}>
                                 <button
-                                    onClick={handleNext}
+                                    onClick={() => handleGrade(true)}
                                     style={{
-                                        width: '100%',
-                                        padding: '1rem',
-                                        backgroundColor: '#667eea',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '0.75rem',
-                                        cursor: 'pointer',
-                                        fontSize: '1rem',
-                                        fontWeight: '600',
-                                        transition: 'all 0.3s ease',
-                                        animation: 'fadeIn 0.3s ease-out'
+                                        flex: 1, padding: '0.85rem', backgroundColor: '#10b981',
+                                        color: 'white', border: 'none', borderRadius: '0.5rem',
+                                        cursor: 'pointer', fontWeight: '600', fontSize: '1rem'
                                     }}
-                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#764ba2'}
-                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#667eea'}
-                                >
-                                    {currentIndex < deck.words.length - 1 ? 'Next' : 'Finish'}
-                                </button>
-                            )}
-                        </div>
+                                >✓ Got it</button>
+                                <button
+                                    onClick={() => handleGrade(false)}
+                                    style={{
+                                        flex: 1, padding: '0.85rem', backgroundColor: '#ef4444',
+                                        color: 'white', border: 'none', borderRadius: '0.5rem',
+                                        cursor: 'pointer', fontWeight: '600', fontSize: '1rem'
+                                    }}
+                                >✗ Missed it</button>
+                            </div>
+                        )}
+        
+                        {/* Next button after grading */}
+                        {graded && (
+                            <button
+                                onClick={handleNext}
+                                style={{
+                                    width: '100%', padding: '0.85rem', backgroundColor: '#667eea',
+                                    color: 'white', border: 'none', borderRadius: '0.5rem',
+                                    cursor: 'pointer', fontWeight: '600', fontSize: '1rem'
+                                }}
+                            >
+                                {currentIndex < queue.length - 1 ? 'Next →' : 'Finish'}
+                            </button>
+                        )}
                     </div>
                 </div>
             );
         };
-
         // Penguin Game Mode (integrated from original code)
         const PenguinGameMode = ({ deckKey, onBack }) => {
             const deck = vocabularyDecks[deckKey];
