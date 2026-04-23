@@ -818,8 +818,11 @@
         };
 
         // Handwriting Mode
-        const HandwriteMode = ({ deckKey, onBack }) => {
+       const HandwriteMode = ({ deckKey, onBack }) => {
             const deck = getDeck(deckKey);
+            const [side, setSide] = useState(null);
+        
+            if (!side) return <SidePicker deck={deck} onSelect={setSide} />;
             const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
         
             const [queue, setQueue] = useState(() => shuffle(deck.words));
@@ -967,10 +970,10 @@
         
                     <div style={{ ...cardStyle, maxWidth: '600px' }}>
                         <p style={{ color: '#888', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '0.5rem' }}>
-                            Write the translation in English
+                            {side === 'native' ? 'Write the translation in English' : 'Write the foreign word'}
                         </p>
                         <h2 style={{ fontSize: '3rem', fontWeight: 'bold', color: '#333', marginBottom: '1.5rem' }}>
-                            {currentWord.word}
+                            {side === 'native' ? currentWord.word : currentWord.translation}
                         </h2>
         
                         {/* Drawing canvas */}
@@ -1017,7 +1020,7 @@
                                 backgroundColor: '#f0f4ff', border: '2px solid #667eea',
                                 fontSize: '1.5rem', fontWeight: 'bold', color: '#333', textAlign: 'center'
                             }}>
-                                {currentWord.translation}
+                                {side === 'native' ? currentWord.translation : currentWord.word}
                             </div>
                         )}
         
