@@ -487,11 +487,8 @@
         };
         
             // MultipleChoiceMode
-        const MultipleChoiceMode = ({ deckKey, onBack }) => {
+        const MultipleChoiceMode = ({ deckKey, onBack, side }) => {
             const deck = getDeck(deckKey);
-            const [side, setSide] = useState(null);
-        
-            if (!side) return <SidePicker deck={deck} onSelect={setSide} />;
             
             // Helper to shuffle any array
             const shuffle = (array) => [...array].sort(() => Math.random() - 0.5);
@@ -641,11 +638,9 @@
         };
       
         // Type Answer Mode
-       const TypeAnswerMode = ({ deckKey, onBack }) => {
+       const TypeAnswerMode = ({ deckKey, onBack, side }) => {
             const deck = getDeck(deckKey);
-            const [side, setSide] = useState(null);
-        
-            if (!side) return <SidePicker deck={deck} onSelect={setSide} />;
+            
             const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
         
             const [queue, setQueue] = useState(() => shuffle(deck.words));
@@ -818,11 +813,9 @@
         };
 
         // Handwriting Mode
-       const HandwriteMode = ({ deckKey, onBack }) => {
+       const HandwriteMode = ({ deckKey, onBack, side }) => {
             const deck = getDeck(deckKey);
-            const [side, setSide] = useState(null);
-        
-            if (!side) return <SidePicker deck={deck} onSelect={setSide} />;
+            
             const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
         
             const [queue, setQueue] = useState(() => shuffle(deck.words));
@@ -1501,21 +1494,31 @@
         const VocabApp = () => {
             const [page, setPage] = useState('home');
             const [selectedDeck, setSelectedDeck] = useState(null);
-
+            const [selectedSide, setSelectedSide] = useState(null);
+            const [pendingMode, setPendingMode] = useState(null);
+            
             const handleSelectDeck = (deckKey) => {
                 setSelectedDeck(deckKey);
                 setPage('modes');
             };
 
             const handleSelectMode = (modeId) => {
-                setPage(modeId);
+                if (['multiple-choice', 'type-answer', 'handwrite'].includes(modeId)) {
+                    setPage('side-picker');
+                    setSelectedSide(null);
+                    setPendingMode(modeId);
+                } else {
+                    setPage(modeId);
+                }
             };
 
             const handleBack = (destination = 'modes') => {
                 if (destination === 'modes') {
+                    setSelectedSide(null);
                     setPage('modes');
                 } else {
                     setSelectedDeck(null);
+                    setSelectedSide(null);
                     setPage('home');
                 }
             };
@@ -1525,12 +1528,14 @@
                     return <HomePage onSelectDeck={handleSelectDeck} />;
                 case 'modes':
                     return <ModeSelectionPage deckKey={selectedDeck} onSelectMode={handleSelectMode} onBack={() => handleBack('home')} />;
+                case 'side-picker':
+                    return <SidePicker deck={getDeck(selectedDeck)} onSelect={(side) => { setSelectedSide(side); setPage(pendingMode); }} />;
                 case 'multiple-choice':
-                    return <MultipleChoiceMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
+                    return <MultipleChoiceMode deckKey={selectedDeck} side={selectedSide} onBack={() => handleBack('modes')} />;
                 case 'type-answer':
-                    return <TypeAnswerMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
+                    return <TypeAnswerMode deckKey={selectedDeck} side={selectedSide} onBack={() => handleBack('modes')} />;
                 case 'handwrite':
-                    return <HandwriteMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
+                    return <HandwriteMode deckKey={selectedDeck} side={selectedSide} onBack={() => handleBack('modes')} />;
                 case 'penguin-game':
                     return <PenguinGameMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
                 default:
