@@ -78,7 +78,6 @@
         const vocabularyDecks = {
             polish: {
                 name: 'Polish',
-                flag: '🇵🇱',
                 words: [
                     { word: 'dzień', translation: 'day' },
                     { word: 'noc', translation: 'night' },
@@ -94,7 +93,6 @@
             },
             japanese: {
                 name: 'Japanese',
-                flag: '🇯🇵',
                 words: [
                     { word: '水', translation: 'water' },
                     { word: '火', translation: 'fire' },
@@ -110,7 +108,6 @@
             },
             tagalog: {
                 name: 'Tagalog',
-                flag: '🇵🇭',
                 words: [
                     { word: 'araw', translation: 'day' },
                     { word: 'gabi', translation: 'night' },
@@ -233,9 +230,6 @@
                                     e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
                                 }}
                             >
-                                <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
-                                    {deck.flag}
-                                </div>
                                 <div>{deck.name}</div>
                                 <div style={{
                                     fontSize: '0.875rem',
@@ -321,7 +315,7 @@
                             color: 'white',
                             textShadow: '0 4px 15px rgba(0,0,0,0.3)'
                         }}>
-                            {deck.flag} {deck.name}
+                            {deck.name}
                         </h1>
                         <p style={{
                             color: 'rgba(255,255,255,0.9)',
