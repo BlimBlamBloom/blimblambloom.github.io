@@ -250,7 +250,7 @@
                 </div>
             );
         };
-// Multiple Choice Mode
+
         const ModeSelectionPage = ({ deckKey, onSelectMode, onBack }) => {
             const deck = vocabularyDecks[deckKey];
             
@@ -389,154 +389,152 @@
                 </div>
             );
         };
-
-        const shuffle = (array) => [...array].sort(() => Math.random() - 0.5);
+            // MultipleChoiceMode
+               const MultipleChoiceMode = ({ deckKey, onBack }) => {
+            const deck = vocabularyDecks[deckKey];
+            
+            // Helper to shuffle any array
+            const shuffle = (array) => [...array].sort(() => Math.random() - 0.5);
         
-const MultipleChoiceMode = ({ deckKey, onBack }) => {
-    const deck = vocabularyDecks[deckKey];
-
-    const [practiceDirection, setPracticeDirection] = useState(null); 
-    const [queue, setQueue] = useState([]);
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [wrongAttempts, setWrongAttempts] = useState(0);
-    const [firstTryCorrect, setFirstTryCorrect] = useState(0);
-    const [hasAttemptedCurrent, setHasAttemptedCurrent] = useState(false);
-    const [selectedAnswer, setSelectedAnswer] = useState(null);
-    const [isFinished, setIsFinished] = useState(false);
-    const currentWord = (queue && queue.length > 0) ? queue[currentIndex] : null;
-
-    if (!practiceDirection) {
-        return (
-            <div style={{ width: '100%', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={cardStyle}>
-                    <h2 style={{ color: '#333', marginBottom: '2rem' }}>Choose Direction</h2>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <button 
-                            onClick={() => {
-                                setPracticeDirection('toTranslation');
-                                setQueue(shuffle(deck.words));
-                            }} 
-                            style={menuButtonStyle}
-                        >
-                            {deck.name} → English
-                        </button>
-                        <button 
-                            onClick={() => {
-                                setPracticeDirection('toWord');
-                                setQueue(shuffle(deck.words));
-                            }} 
-                            style={menuButtonStyle}
-                        >
-                            English → {deck.name}
-                        </button>
-                        <button onClick={onBack} style={{ ...menuButtonStyle, backgroundColor: '#ccc' }}>
-                            Cancel
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    const options = useMemo(() => {
-        if (!currentWord) return [];
-        const isToWord = practiceDirection === 'toWord';
-        const correctAnswer = isToWord ? currentWord.word : currentWord.translation;
+            // Initial State
+            const [queue, setQueue] = useState(() => shuffle(deck.words));
+            const [currentIndex, setCurrentIndex] = useState(0);
+            const [wrongAttempts, setWrongAttempts] = useState(0);
+            const [firstTryCorrect, setFirstTryCorrect] = useState(0);
+            const [hasAttemptedCurrent, setHasAttemptedCurrent] = useState(false);
+            const [selectedAnswer, setSelectedAnswer] = useState(null);
+            const [isFinished, setIsFinished] = useState(false);
         
-        let choices = [correctAnswer];
-        let distractors = deck.words
-            .filter(w => w.word !== currentWord.word)
-            .map(w => isToWord ? w.word : w.translation);
+            const currentWord = queue[currentIndex];
         
-        choices.push(...shuffle(distractors).slice(0, 3));
-        return shuffle(choices);
-    }, [currentWord, practiceDirection]);
-
-    const handleAnswer = (choice) => {
-        if (selectedAnswer || !currentWord) return; 
-        setSelectedAnswer(choice);
-
-        const correctAnswer = practiceDirection === 'toTranslation' 
-            ? currentWord.translation 
-            : currentWord.word;
-
-        if (choice === correctAnswer) {
-            if (!hasAttemptedCurrent && currentIndex < deck.words.length) {
-                setFirstTryCorrect(prev => prev + 1);
-            }
-            setTimeout(() => {
-                if (currentIndex < queue.length - 1) {
-                    setCurrentIndex(prev => prev + 1);
-                    setSelectedAnswer(null);
-                    setHasAttemptedCurrent(false);
+            // Generate options once per card
+            const options = useMemo(() => {
+                if (!currentWord) return [];
+                let choices = [currentWord.translation];
+                let distractors = deck.words
+                    .filter(w => w.word !== currentWord.word)
+                    .map(w => w.translation);
+                
+                choices.push(...shuffle(distractors).slice(0, 3));
+                return shuffle(choices);
+            }, [currentWord, deck.words]);
+        
+            const handleAnswer = (choice) => {
+                if (selectedAnswer) return; 
+                setSelectedAnswer(choice);
+        
+                if (choice === currentWord.translation) {
+                    // ONLY increment score if:
+                    // 1. We haven't failed it yet on THIS specific turn (hasAttemptedCurrent)
+                    // 2. This card's position is within the original deck size
+                    if (!hasAttemptedCurrent && currentIndex < deck.words.length) {
+                        setFirstTryCorrect(prev => prev + 1);
+                    }
+                    
+                    setTimeout(() => {
+                        if (currentIndex < queue.length - 1) {
+                            setCurrentIndex(prev => prev + 1);
+                            setSelectedAnswer(null);
+                            setHasAttemptedCurrent(false);
+                        } else {
+                            setIsFinished(true);
+                        }
+                    }, 1000);
                 } else {
-                    setIsFinished(true);
+                    // INCORRECT
+                    setWrongAttempts(prev => prev + 1);
+                    setHasAttemptedCurrent(true);
+                    
+                    // Push to the end of the list
+                    setQueue(prev => [...prev, currentWord]);
+                    
+                    setTimeout(() => {
+                        setSelectedAnswer(null);
+                        setCurrentIndex(prev => prev + 1);
+                        setHasAttemptedCurrent(false);
+                    }, 1000);
                 }
-            }, 1000);
-        } else {
-            setWrongAttempts(prev => prev + 1);
-            setHasAttemptedCurrent(true);
-            setQueue(prev => [...prev, currentWord]);
-            setTimeout(() => {
-                setSelectedAnswer(null);
-                setCurrentIndex(prev => prev + 1);
-                setHasAttemptedCurrent(false);
-            }, 1000);
-        }
-    };
-
-    if (isFinished) {
+            };
+        
+          if (isFinished) {
         return (
-            <div style={{ width: '100%', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-                <div style={{ backgroundColor: 'white', padding: '3rem', borderRadius: '1.5rem', textAlign: 'center', boxShadow: '0 20px 60px rgba(0,0,0,0.3)', maxWidth: '400px', width: '90%' }}>
-                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>{firstTryCorrect === deck.words.length ? '👑' : '✨'}</div>
+            <div style={{ 
+                width: '100%', 
+                height: '100vh', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' 
+            }}>
+                <div style={{
+                    backgroundColor: 'white',
+                    padding: '3rem',
+                    borderRadius: '1.5rem',
+                    textAlign: 'center',
+                    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+                    maxWidth: '400px',
+                    width: '90%'
+                }}>
+                    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+                        {firstTryCorrect === deck.words.length ? '👑' : '✨'}
+                    </div>
                     <h2 style={{ color: '#333', fontSize: '2rem', marginBottom: '1rem' }}>Results</h2>
                     <p style={{ fontSize: '1.5rem', color: '#666', marginBottom: '2rem' }}>
                         Score: <strong>{firstTryCorrect} / {deck.words.length}</strong>
                     </p>
-                    <button onClick={onBack} style={{ backgroundColor: '#667eea', color: 'white', border: 'none', padding: '0.75rem 2rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '600' }}>
+                    <button 
+                        onClick={onBack} 
+                        style={{
+                            backgroundColor: '#667eea',
+                            color: 'white',
+                            border: 'none',
+                            padding: '0.75rem 2rem',
+                            borderRadius: '0.5rem',
+                            cursor: 'pointer',
+                            fontWeight: '600'
+                        }}
+                    >
                         Back to Menu
                     </button>
                 </div>
             </div>
         );
     }
-
-    return (
-        <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ color: 'white', marginBottom: '1rem' }}>
-                Progress: {currentIndex + 1} / {queue.length}
-            </div>
-            <div style={cardStyle}>
-                <h1 style={{ fontSize: '3rem', margin: '1rem 0' }}>
-                    {practiceDirection === 'toTranslation' ? currentWord.word : currentWord.translation}
-                </h1>                        
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%' }}>
-                    {options.map((option, i) => {
-                        const correctAnswer = practiceDirection === 'toTranslation' ? currentWord.translation : currentWord.word;
-                        return (
-                            <button
-                                key={i}
-                                onClick={() => handleAnswer(option)}
-                                style={{
-                                    ...optionStyle,
-                                    backgroundColor: selectedAnswer === option 
-                                        ? (option === correctAnswer ? '#10b981' : '#ef4444') 
-                                        : 'white'
-                                }}
-                            >
-                                {option}
-                            </button>
-                        );
-                    })}
+        
+            return (
+                <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ color: 'white', marginBottom: '1rem' }}>
+                        Progress: {currentIndex + 1} / {queue.length}
+                    </div>
+        
+                    <div style={cardStyle}>
+                        <h1 style={{ fontSize: '3rem', margin: '1rem 0' }}>{currentWord.word}</h1>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%' }}>
+                            {options.map((option, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => handleAnswer(option)}
+                                    style={{
+                                        ...optionStyle,
+                                        backgroundColor: selectedAnswer === option 
+                                            ? (option === currentWord.translation ? '#10b981' : '#ef4444')
+                                            : 'white'
+                                    }}
+                                >
+                                    {option}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+        
+                    <button onClick={onBack} style={{ ...buttonStyle, position: 'absolute', bottom: '2rem', left: '2rem' }}>
+                        ← Back
+                    </button>
                 </div>
-            </div>
-            <button onClick={onBack} style={{ ...buttonStyle, position: 'absolute', bottom: '2rem', left: '2rem' }}>
-                ← Back
-            </button>
-        </div>
-    );
-};
+            );
+        };
+      
         // Type Answer Mode
         const TypeAnswerMode = ({ deckKey, onBack }) => {
             const deck = vocabularyDecks[deckKey];
