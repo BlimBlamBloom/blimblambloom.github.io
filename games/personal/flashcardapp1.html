@@ -378,12 +378,14 @@
             }, [currentWord, deck.words]);
         
             const handleAnswer = (choice) => {
-                if (selectedAnswer) return; // Prevent double clicking
+                if (selectedAnswer) return; 
                 setSelectedAnswer(choice);
         
                 if (choice === currentWord.translation) {
-                    // CORRECT
-                    if (!hasAttemptedCurrent) {
+                    // ONLY increment score if:
+                    // 1. We haven't failed it yet on THIS specific turn (hasAttemptedCurrent)
+                    // 2. This card's position is within the original deck size
+                    if (!hasAttemptedCurrent && currentIndex < deck.words.length) {
                         setFirstTryCorrect(prev => prev + 1);
                     }
                     
@@ -401,7 +403,7 @@
                     setWrongAttempts(prev => prev + 1);
                     setHasAttemptedCurrent(true);
                     
-                    // Add this word to the end of the queue
+                    // Push to the end of the list
                     setQueue(prev => [...prev, currentWord]);
                     
                     setTimeout(() => {
