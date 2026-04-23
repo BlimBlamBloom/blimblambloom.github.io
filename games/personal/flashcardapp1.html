@@ -347,299 +347,147 @@
                 </div>
             );
         };
-
-        // Multiple Choice Mode
-        const MultipleChoiceMode = ({ deckKey, onBack }) => {
+            // MultipleChoiceMode
+               const MultipleChoiceMode = ({ deckKey, onBack }) => {
             const deck = vocabularyDecks[deckKey];
+            
+            // Helper to shuffle any array
+            const shuffle = (array) => [...array].sort(() => Math.random() - 0.5);
+        
+            // Initial State
+            const [queue, setQueue] = useState(() => shuffle(deck.words));
             const [currentIndex, setCurrentIndex] = useState(0);
-            const [score, setScore] = useState(0);
-            const [answered, setAnswered] = useState(false);
+            const [wrongAttempts, setWrongAttempts] = useState(0);
+            const [firstTryCorrect, setFirstTryCorrect] = useState(0);
+            const [hasAttemptedCurrent, setHasAttemptedCurrent] = useState(false);
             const [selectedAnswer, setSelectedAnswer] = useState(null);
-            const [isCorrect, setIsCorrect] = useState(null);
-            const [completed, setCompleted] = useState(false);
-
-            const currentWord = deck.words[currentIndex];
-            const showingTranslation = Math.random() > 0.5;
-
-            const getOptions = () => {
-                const correctIndex = Math.floor(Math.random() * 4);
-                const options = [];
+            const [isFinished, setIsFinished] = useState(false);
+        
+            const currentWord = queue[currentIndex];
+        
+            // Generate options once per card
+            const options = useMemo(() => {
+                if (!currentWord) return [];
+                let choices = [currentWord.translation];
+                let distractors = deck.words
+                    .filter(w => w.word !== currentWord.word)
+                    .map(w => w.translation);
                 
-                for (let i = 0; i < 4; i++) {
-                    if (i === correctIndex) {
-                        options.push(showingTranslation ? currentWord.translation : currentWord.word);
-                    } else {
-                        let randomWord;
-                        do {
-                            randomWord = deck.words[Math.floor(Math.random() * deck.words.length)];
-                        } while (randomWord.word === currentWord.word);
-                        options.push(showingTranslation ? randomWord.translation : randomWord.word);
+                choices.push(...shuffle(distractors).slice(0, 3));
+                return shuffle(choices);
+            }, [currentWord, deck.words]);
+        
+            const handleAnswer = (choice) => {
+                if (selectedAnswer) return; // Prevent double clicking
+                setSelectedAnswer(choice);
+        
+                if (choice === currentWord.translation) {
+                    // CORRECT
+                    if (!hasAttemptedCurrent) {
+                        setFirstTryCorrect(prev => prev + 1);
                     }
-                }
-                return { options, correctIndex };
-            };
-
-            const { options, correctIndex } = getOptions();
-
-            const handleAnswer = (index) => {
-                if (answered) return;
-                setSelectedAnswer(index);
-                setAnswered(true);
-                const correct = index === correctIndex;
-                setIsCorrect(correct);
-                if (correct) {
-                    setScore(score + 1);
-                }
-            };
-
-            const handleNext = () => {
-                if (currentIndex < deck.words.length - 1) {
-                    setCurrentIndex(currentIndex + 1);
-                    setAnswered(false);
-                    setSelectedAnswer(null);
-                    setIsCorrect(null);
+                    
+                    setTimeout(() => {
+                        if (currentIndex < queue.length - 1) {
+                            setCurrentIndex(prev => prev + 1);
+                            setSelectedAnswer(null);
+                            setHasAttemptedCurrent(false);
+                        } else {
+                            setIsFinished(true);
+                        }
+                    }, 1000);
                 } else {
-                    setCompleted(true);
+                    // INCORRECT
+                    setWrongAttempts(prev => prev + 1);
+                    setHasAttemptedCurrent(true);
+                    
+                    // Add this word to the end of the queue
+                    setQueue(prev => [...prev, currentWord]);
+                    
+                    setTimeout(() => {
+                        setSelectedAnswer(null);
+                        setCurrentIndex(prev => prev + 1);
+                        setHasAttemptedCurrent(false);
+                    }, 1000);
                 }
             };
-
-            if (completed) {
+        
+            if (isFinished) {
                 return (
-                    <div style={{
-                        width: '100%',
-                        height: '100vh',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                        padding: '2rem'
-                    }}>
-                        <div style={{
-                            backgroundColor: 'white',
-                            borderRadius: '1.5rem',
-                            padding: '3rem',
-                            textAlign: 'center',
-                            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-                            maxWidth: '500px',
-                            animation: 'fadeIn 0.6s ease-out'
-                        }}>
-                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
-                                {score === deck.words.length ? '🎉' : '✨'}
-                            </div>
-                            <h2 style={{
-                                fontSize: '2rem',
-                                fontWeight: 'bold',
-                                marginBottom: '1rem',
-                                color: '#333'
-                            }}>
-                                Completed!
-                            </h2>
-                            <p style={{
-                                fontSize: '1.25rem',
-                                marginBottom: '2rem',
-                                color: '#666'
-                            }}>
-                                You scored <strong>{score}/{deck.words.length}</strong>
-                            </p>
-                            <div style={{
-                                display: 'flex',
-                                gap: '1rem',
-                                justifyContent: 'center'
-                            }}>
-                                <button
-                                    onClick={onBack}
-                                    style={{
-                                        backgroundColor: '#667eea',
-                                        color: 'white',
-                                        border: 'none',
-                                        padding: '0.75rem 2rem',
-                                        borderRadius: '0.5rem',
-                                        cursor: 'pointer',
-                                        fontSize: '1rem',
-                                        fontWeight: '600',
-                                        transition: 'all 0.3s ease'
-                                    }}
-                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#764ba2'}
-                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#667eea'}
-                                >
-                                    Back to Modes
-                                </button>
-                            </div>
-                        </div>
+                    <div style={{ padding: '2rem', textAlign: 'center', color: 'white' }}>
+                        <h2>Round Complete!</h2>
+                        <p style={{ fontSize: '1.5rem' }}>
+                            Score: <strong>{firstTryCorrect} / {deck.words.length}</strong>
+                        </p>
+                        <p>Total mistakes: {wrongAttempts}</p>
+                        <button onClick={onBack} style={buttonStyle}>Back to Menu</button>
                     </div>
                 );
             }
-
+        
             return (
-                <div style={{
-                    width: '100%',
-                    height: '100vh',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                    padding: '2rem'
-                }}>
-                    <button
-                        onClick={onBack}
-                        style={{
-                            position: 'absolute',
-                            top: '2rem',
-                            left: '2rem',
-                            backgroundColor: 'rgba(255,255,255,0.2)',
-                            border: 'none',
-                            color: 'white',
-                            padding: '0.5rem 1rem',
-                            borderRadius: '0.5rem',
-                            cursor: 'pointer',
-                            fontSize: '1rem',
-                            fontWeight: '600',
-                            transition: 'all 0.3s ease'
-                        }}
-                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.3)'}
-                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'}
-                    >
-                        ← Back
-                    </button>
-
-                    <div style={{
-                        position: 'absolute',
-                        top: '2rem',
-                        right: '2rem',
-                        color: 'white',
-                        fontSize: '1.125rem',
-                        fontWeight: '600'
-                    }}>
-                        {currentIndex + 1}/{deck.words.length} | Score: {score}
+                <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ color: 'white', marginBottom: '1rem' }}>
+                        Progress: {currentIndex + 1} / {queue.length}
                     </div>
-
-                    <div style={{
-                        flex: 1,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                    }}>
-                        <div style={{
-                            backgroundColor: 'white',
-                            borderRadius: '1.5rem',
-                            padding: '3rem',
-                            maxWidth: '600px',
-                            width: '100%',
-                            boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-                            animation: 'fadeIn 0.6s ease-out'
-                        }}>
-                            <p style={{
-                                color: '#666',
-                                fontSize: '0.875rem',
-                                marginBottom: '1rem',
-                                textTransform: 'uppercase',
-                                letterSpacing: '0.05em'
-                            }}>
-                                {showingTranslation ? 'Translate to English' : 'Identify the translation'}
-                            </p>
-                            
-                            <h2 style={{
-                                fontSize: '2.5rem',
-                                fontWeight: 'bold',
-                                marginBottom: '2rem',
-                                color: '#333',
-                                textAlign: 'center'
-                            }}>
-                                {showingTranslation ? currentWord.word : currentWord.translation}
-                            </h2>
-
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: '1fr 1fr',
-                                gap: '1rem',
-                                marginBottom: '2rem'
-                            }}>
-                                {options.map((option, index) => (
-                                    <button
-                                        key={index}
-                                        onClick={() => handleAnswer(index)}
-                                        disabled={answered}
-                                        style={{
-                                            padding: '1.25rem',
-                                            borderRadius: '0.75rem',
-                                            border: 'none',
-                                            cursor: answered ? 'default' : 'pointer',
-                                            fontSize: '1rem',
-                                            fontWeight: '600',
-                                            transition: 'all 0.3s ease',
-                                            backgroundColor: 
-                                                !answered ? '#f0f0f0' :
-                                                index === correctIndex ? '#10b981' :
-                                                index === selectedAnswer ? '#ef4444' : '#f0f0f0',
-                                            color: 
-                                                answered && (index === correctIndex || index === selectedAnswer) ? 'white' : '#333',
-                                            transform: !answered && selectedAnswer === null ? 'scale(1)' : 'scale(1)',
-                                            opacity: !answered ? 1 : (index === correctIndex || index === selectedAnswer ? 1 : 0.5)
-                                        }}
-                                        onMouseOver={(e) => {
-                                            if (!answered) {
-                                                e.currentTarget.style.backgroundColor = '#e0e0e0';
-                                            }
-                                        }}
-                                        onMouseOut={(e) => {
-                                            if (!answered) {
-                                                e.currentTarget.style.backgroundColor = '#f0f0f0';
-                                            }
-                                        }}
-                                    >
-                                        {option}
-                                    </button>
-                                ))}
-                            </div>
-
-                            {answered && (
-                                <div style={{
-                                    backgroundColor: isCorrect ? '#d1fae5' : '#fee2e2',
-                                    color: isCorrect ? '#065f46' : '#991b1b',
-                                    padding: '1rem',
-                                    borderRadius: '0.75rem',
-                                    marginBottom: '1.5rem',
-                                    textAlign: 'center',
-                                    fontWeight: '600',
-                                    animation: 'fadeIn 0.3s ease-out'
-                                }}>
-                                    {isCorrect ? '✓ Correct!' : '✗ Incorrect'}
-                                    <div style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
-                                        {showingTranslation 
-                                            ? `${currentWord.word} = ${currentWord.translation}`
-                                            : `${currentWord.translation} = ${currentWord.word}`
-                                        }
-                                    </div>
-                                </div>
-                            )}
-
-                            {answered && (
+        
+                    <div style={cardStyle}>
+                        <h1 style={{ fontSize: '3rem', margin: '1rem 0' }}>{currentWord.word}</h1>
+                        
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', width: '100%' }}>
+                            {options.map((option, i) => (
                                 <button
-                                    onClick={handleNext}
+                                    key={i}
+                                    onClick={() => handleAnswer(option)}
                                     style={{
-                                        width: '100%',
-                                        padding: '1rem',
-                                        backgroundColor: '#667eea',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '0.75rem',
-                                        cursor: 'pointer',
-                                        fontSize: '1rem',
-                                        fontWeight: '600',
-                                        transition: 'all 0.3s ease',
-                                        animation: 'fadeIn 0.3s ease-out'
+                                        ...optionStyle,
+                                        backgroundColor: selectedAnswer === option 
+                                            ? (option === currentWord.translation ? '#10b981' : '#ef4444')
+                                            : 'white'
                                     }}
-                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#764ba2'}
-                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#667eea'}
                                 >
-                                    {currentIndex < deck.words.length - 1 ? 'Next' : 'Finish'}
+                                    {option}
                                 </button>
-                            )}
+                            ))}
                         </div>
                     </div>
+        
+                    <button onClick={onBack} style={{ ...buttonStyle, position: 'absolute', bottom: '2rem', left: '2rem' }}>
+                        ← Back
+                    </button>
                 </div>
             );
         };
-
+        
+        // Simple Styles
+        const cardStyle = {
+            backgroundColor: 'white',
+            padding: '2rem',
+            borderRadius: '1rem',
+            width: '100%',
+            maxWidth: '400px',
+            textAlign: 'center',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.2)'
+        };
+        
+        const optionStyle = {
+            padding: '1rem',
+            border: '2px solid #ddd',
+            borderRadius: '0.5rem',
+            cursor: 'pointer',
+            fontSize: '1rem',
+            fontWeight: 'bold',
+            transition: '0.2s'
+        };
+        
+        const buttonStyle = {
+            padding: '0.5rem 1rem',
+            backgroundColor: 'rgba(255,255,255,0.2)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '0.5rem',
+            cursor: 'pointer'
+        };
         // Type Answer Mode
         const TypeAnswerMode = ({ deckKey, onBack }) => {
             const deck = vocabularyDecks[deckKey];
