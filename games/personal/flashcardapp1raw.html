@@ -74,55 +74,92 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo } = React;
 
-        // Vocabulary decks
-        const vocabularyDecks = {
+        // Vocabulary folders and decks
+                const vocabularyFolders = {
             polish: {
                 name: 'Polish',
-                words: [
-                    { word: 'dzień', translation: 'day' },
-                    { word: 'noc', translation: 'night' },
-                    { word: 'słońce', translation: 'sun' },
-                    { word: 'księżyc', translation: 'moon' },
-                    { word: 'gwiazda', translation: 'star' },
-                    { word: 'woda', translation: 'water' },
-                    { word: 'las', translation: 'forest' },
-                    { word: 'góra', translation: 'mountain' },
-                    { word: 'dom', translation: 'house' },
-                    { word: 'okno', translation: 'window' }
-                ]
+                decks: {
+                    polish1: {
+                        name: 'Polish 1',
+                        words: [
+                            { word: 'dzień', translation: 'day' },
+                            { word: 'noc', translation: 'night' },
+                            { word: 'słońce', translation: 'sun' },
+                            { word: 'księżyc', translation: 'moon' },
+                            { word: 'gwiazda', translation: 'star' },
+                            { word: 'woda', translation: 'water' },
+                            { word: 'las', translation: 'forest' },
+                            { word: 'góra', translation: 'mountain' },
+                            { word: 'dom', translation: 'house' },
+                            { word: 'okno', translation: 'window' }
+                        ]
+                    },
+                    polish2: {
+                        name: 'Polish 2',
+                        words: [
+                            { word: 'kot', translation: 'cat' },
+                            { word: 'pies', translation: 'dog' },
+                            { word: 'ptak', translation: 'bird' },
+                            { word: 'ryba', translation: 'fish' },
+                            { word: 'koń', translation: 'horse' },
+                            { word: 'krowa', translation: 'cow' },
+                            { word: 'owca', translation: 'sheep' },
+                            { word: 'świnia', translation: 'pig' },
+                            { word: 'mysz', translation: 'mouse' },
+                            { word: 'zając', translation: 'rabbit' }
+                        ]
+                    }
+                }
             },
             japanese: {
                 name: 'Japanese',
-                words: [
-                    { word: '水', translation: 'water' },
-                    { word: '火', translation: 'fire' },
-                    { word: '土', translation: 'earth' },
-                    { word: '木', translation: 'tree' },
-                    { word: '金', translation: 'gold' },
-                    { word: '空', translation: 'sky' },
-                    { word: '雨', translation: 'rain' },
-                    { word: '風', translation: 'wind' },
-                    { word: '猫', translation: 'cat' },
-                    { word: '犬', translation: 'dog' }
-                ]
+                decks: {
+                    japanese1: {
+                        name: 'Japanese 1',
+                        words: [
+                            { word: '水', translation: 'water' },
+                            { word: '火', translation: 'fire' },
+                            { word: '土', translation: 'earth' },
+                            { word: '木', translation: 'tree' },
+                            { word: '金', translation: 'gold' },
+                            { word: '空', translation: 'sky' },
+                            { word: '雨', translation: 'rain' },
+                            { word: '風', translation: 'wind' },
+                            { word: '猫', translation: 'cat' },
+                            { word: '犬', translation: 'dog' }
+                        ]
+                    }
+                }
             },
             tagalog: {
                 name: 'Tagalog',
-                words: [
-                    { word: 'araw', translation: 'day' },
-                    { word: 'gabi', translation: 'night' },
-                    { word: 'araw-araw', translation: 'daily' },
-                    { word: 'bahay', translation: 'house' },
-                    { word: 'pamilya', translation: 'family' },
-                    { word: 'puso', translation: 'heart' },
-                    { word: 'kaibigan', translation: 'friend' },
-                    { word: 'pag-ibig', translation: 'love' },
-                    { word: 'langit', translation: 'sky' },
-                    { word: 'dagat', translation: 'sea' }
-                ]
+                decks: {
+                    tagalog1: {
+                        name: 'Tagalog 1',
+                        words: [
+                            { word: 'araw', translation: 'day' },
+                            { word: 'gabi', translation: 'night' },
+                            { word: 'araw-araw', translation: 'daily' },
+                            { word: 'bahay', translation: 'house' },
+                            { word: 'pamilya', translation: 'family' },
+                            { word: 'puso', translation: 'heart' },
+                            { word: 'kaibigan', translation: 'friend' },
+                            { word: 'pag-ibig', translation: 'love' },
+                            { word: 'langit', translation: 'sky' },
+                            { word: 'dagat', translation: 'sea' }
+                        ]
+                    }
+                }
             }
         };
-
+        
+        // Helper: look up any deck by its key, across all folders
+        const getDeck = (deckKey) => {
+            for (const folder of Object.values(vocabularyFolders)) {
+                if (folder.decks[deckKey]) return folder.decks[deckKey];
+            }
+            return null;
+        };
         // 2. Shared Styles (Put them here!)
     const cardStyle = {
         backgroundColor: 'white',
@@ -165,88 +202,121 @@
         cursor: 'pointer'
     };
 
-        const HomePage = ({ onSelectDeck }) => {
-            return (
-                <div style={{
-                    width: '100%',
-                    height: '100vh',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '2rem',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-                }}>
-                    <h1 style={{
-                        fontSize: '3.5rem',
-                        fontWeight: 'bold',
-                        color: 'white',
-                        marginBottom: '1rem',
-                        textShadow: '0 4px 15px rgba(0,0,0,0.3)',
-                        animation: 'fadeIn 0.8s ease-out'
-                    }}>
-                        Polyglot
-                    </h1>
-                    <p style={{
-                        fontSize: '1.25rem',
-                        color: 'rgba(255,255,255,0.9)',
-                        marginBottom: '3rem',
-                        animation: 'fadeIn 1s ease-out',
-                        animationDelay: '0.1s'
-                    }}>
-                        Choose a language to practice
-                    </p>
-                    
+    const HomePage = ({ onSelectDeck }) => {
+                const [openFolder, setOpenFolder] = useState(null);
+            
+                return (
                     <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                        gap: '2rem',
-                        maxWidth: '800px',
-                        width: '100%'
+                        width: '100%',
+                        minHeight: '100vh',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '2rem',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
                     }}>
-                        {Object.entries(vocabularyDecks).map(([key, deck], index) => (
-                            <button
-                                key={key}
-                                onClick={() => onSelectDeck(key)}
-                                style={{
-                                    backgroundColor: 'white',
-                                    border: 'none',
-                                    borderRadius: '1rem',
-                                    padding: '2rem',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s ease',
-                                    boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
-                                    animation: `fadeIn 0.6s ease-out ${0.1 * (index + 1)}s backwards`,
-                                    fontSize: '1.125rem',
-                                    fontWeight: '600',
-                                    color: '#333'
-                                }}
-                                onMouseOver={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(-8px)';
-                                    e.currentTarget.style.boxShadow = '0 15px 40px rgba(0,0,0,0.3)';
-                                }}
-                                onMouseOut={(e) => {
-                                    e.currentTarget.style.transform = 'translateY(0)';
-                                    e.currentTarget.style.boxShadow = '0 10px 30px rgba(0,0,0,0.2)';
-                                }}
-                            >
-                                <div>{deck.name}</div>
-                                <div style={{
-                                    fontSize: '0.875rem',
-                                    color: '#666',
-                                    marginTop: '0.5rem'
-                                }}>
-                                    {deck.words.length} words
+                        <h1 style={{
+                            fontSize: '3.5rem',
+                            fontWeight: 'bold',
+                            color: 'white',
+                            marginBottom: '0.5rem',
+                            textShadow: '0 4px 15px rgba(0,0,0,0.3)'
+                        }}>
+                            Polyglot
+                        </h1>
+                        <p style={{
+                            fontSize: '1.25rem',
+                            color: 'rgba(255,255,255,0.9)',
+                            marginBottom: '3rem'
+                        }}>
+                            Choose a language to practice
+                        </p>
+            
+                        <div style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1rem',
+                            maxWidth: '600px',
+                            width: '100%'
+                        }}>
+                            {Object.entries(vocabularyFolders).map(([folderKey, folder]) => (
+                                <div key={folderKey}>
+                                    {/* Folder button */}
+                                    <button
+                                        onClick={() => setOpenFolder(openFolder === folderKey ? null : folderKey)}
+                                        style={{
+                                            width: '100%',
+                                            backgroundColor: 'white',
+                                            border: 'none',
+                                            borderRadius: openFolder === folderKey ? '1rem 1rem 0 0' : '1rem',
+                                            padding: '1.25rem 1.75rem',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'space-between',
+                                            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+                                            transition: 'all 0.2s ease'
+                                        }}
+                                        onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                                        onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                                    >
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            <span style={{ fontSize: '1.75rem' }}>{folder.icon}</span>
+                                            <span style={{ fontSize: '1.2rem', fontWeight: '700', color: '#333' }}>{folder.name}</span>
+                                            <span style={{ fontSize: '0.85rem', color: '#888' }}>
+                                                {Object.keys(folder.decks).length} deck{Object.keys(folder.decks).length !== 1 ? 's' : ''}
+                                            </span>
+                                        </div>
+                                        <span style={{
+                                            fontSize: '1.25rem',
+                                            color: '#667eea',
+                                            transform: openFolder === folderKey ? 'rotate(90deg)' : 'rotate(0deg)',
+                                            transition: 'transform 0.2s ease'
+                                        }}>▶</span>
+                                    </button>
+            
+                                    {/* Deck list (shown when folder is open) */}
+                                    {openFolder === folderKey && (
+                                        <div style={{
+                                            backgroundColor: 'rgba(255,255,255,0.15)',
+                                            borderRadius: '0 0 1rem 1rem',
+                                            overflow: 'hidden'
+                                        }}>
+                                            {Object.entries(folder.decks).map(([deckKey, deck]) => (
+                                                <button
+                                                    key={deckKey}
+                                                    onClick={() => onSelectDeck(deckKey)}
+                                                    style={{
+                                                        width: '100%',
+                                                        backgroundColor: 'transparent',
+                                                        border: 'none',
+                                                        borderTop: '1px solid rgba(255,255,255,0.2)',
+                                                        padding: '1rem 1.75rem 1rem 3.5rem',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        transition: 'background-color 0.2s ease'
+                                                    }}
+                                                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.2)'}
+                                                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                                >
+                                                    <span style={{ fontWeight: '600', color: 'white', fontSize: '1rem' }}>{deck.name}</span>
+                                                    <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.875rem' }}>{deck.words.length} words →</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                            </button>
-                        ))}
+                            ))}
+                        </div>
                     </div>
-                </div>
-            );
-        };
+                );
+            };
 
         const ModeSelectionPage = ({ deckKey, onSelectMode, onBack }) => {
-            const deck = vocabularyDecks[deckKey];
+            const deck = getDeck(deckKey);
             
             const modes = [
                 { 
@@ -385,7 +455,7 @@
         };
             // MultipleChoiceMode
                const MultipleChoiceMode = ({ deckKey, onBack }) => {
-            const deck = vocabularyDecks[deckKey];
+            const deck = getDeck(deckKey);
             
             // Helper to shuffle any array
             const shuffle = (array) => [...array].sort(() => Math.random() - 0.5);
