@@ -327,6 +327,12 @@
                     name: 'Whack-a-Mole',
                     description: 'Whack the mole with the correct translation',
                     icon: '🔨'
+                },
+                {
+                    id: 'drum-machine',
+                    name: 'Drum Machine',
+                    description: 'Tap the correct translation on the beat',
+                    icon: '🥁'
                 }
             ];
 
@@ -1005,7 +1011,298 @@
                 </div>
             );
         };
-
+        // Drum Machine Mode
+        const DrumMachineMode = ({ deckKey, onBack }) => {
+                const deck = getDeck(deckKey);
+                const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+    
+                const BPM = 72;
+                const BEAT_INTERVAL = (60 / BPM) * 1000;
+                const TOTAL_ROUNDS = 10;
+                const OPTIONS_COUNT = 4;
+    
+                const [started, setStarted] = useState(false);
+                const [isFinished, setIsFinished] = useState(false);
+                const [wordQueue, setWordQueue] = useState([]);
+                const [currentWord, setCurrentWord] = useState(null);
+                const [options, setOptions] = useState([]);
+                const [score, setScore] = useState(0);
+                const [round, setRound] = useState(0);
+                const [beat, setBeat] = useState(0);
+                const [pulsing, setPulsing] = useState(false);
+                const [feedback, setFeedback] = useState(null); // { index, correct }
+                const [answered, setAnswered] = useState(false);
+                const [missedBeat, setMissedBeat] = useState(false);
+                const [beatsUntilNext, setBeatsUntilNext] = useState(4);
+                const [activeBeats, setActiveBeats] = useState(4);
+    
+                const beatRef = useRef(0);
+                const answeredRef = useRef(false);
+                const beatsUntilNextRef = useRef(4);
+                const roundRef = useRef(0);
+                const intervalRef = useRef(null);
+    
+                const buildOptions = (word, allWords) => {
+                    const correct = word.translation;
+                    const distractors = shuffle(allWords.filter(w => w.word !== word.word)).slice(0, OPTIONS_COUNT - 1).map(w => w.translation);
+                    return shuffle([correct, ...distractors]);
+                };
+    
+                const loadRound = (queue, roundIndex) => {
+                    const word = queue[roundIndex];
+                    setCurrentWord(word);
+                    setOptions(buildOptions(word, deck.words));
+                    setAnswered(false);
+                    answeredRef.current = false;
+                    setFeedback(null);
+                    setMissedBeat(false);
+                    const beats = 4;
+                    setBeatsUntilNext(beats);
+                    beatsUntilNextRef.current = beats;
+                };
+    
+                useEffect(() => {
+                    if (!started) return;
+                    const q = shuffle([...deck.words]).slice(0, TOTAL_ROUNDS);
+                    setWordQueue(q);
+                    setRound(0);
+                    roundRef.current = 0;
+                    loadRound(q, 0);
+    
+                    intervalRef.current = setInterval(() => {
+                        setBeat(b => {
+                            const next = (b + 1) % 4;
+                            return next;
+                        });
+                        setPulsing(true);
+                        setTimeout(() => setPulsing(false), 120);
+    
+                        beatsUntilNextRef.current -= 1;
+                        setBeatsUntilNext(prev => prev - 1);
+    
+                        if (beatsUntilNextRef.current <= 0) {
+                            if (!answeredRef.current) {
+                                setMissedBeat(true);
+                            }
+                            const nextRound = roundRef.current + 1;
+                            if (nextRound >= TOTAL_ROUNDS) {
+                                clearInterval(intervalRef.current);
+                                setTimeout(() => setIsFinished(true), 600);
+                            } else {
+                                roundRef.current = nextRound;
+                                setRound(nextRound);
+                                setWordQueue(prev => {
+                                    loadRound(prev, nextRound);
+                                    return prev;
+                                });
+                            }
+                        }
+                    }, BEAT_INTERVAL);
+    
+                    return () => clearInterval(intervalRef.current);
+                }, [started]);
+    
+                const handleTap = (index) => {
+                    if (answered || !currentWord) return;
+                    const isCorrect = options[index] === currentWord.translation;
+                    setFeedback({ index, correct: isCorrect });
+                    setAnswered(true);
+                    answeredRef.current = true;
+                    if (isCorrect) setScore(s => s + 1);
+                };
+    
+                const padColors = ['#ff6b6b','#ffd93d','#6bcb77','#4d96ff'];
+                const padLabels = ['A','B','C','D'];
+    
+                const BeatDots = () => (
+                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                        {[0,1,2,3].map(i => (
+                            <div key={i} style={{
+                                width: i === beat && pulsing ? '18px' : '12px',
+                                height: i === beat && pulsing ? '18px' : '12px',
+                                borderRadius: '50%',
+                                backgroundColor: i === beat ? '#ffd93d' : 'rgba(255,255,255,0.15)',
+                                transition: 'all 0.1s ease',
+                                boxShadow: i === beat && pulsing ? '0 0 12px #ffd93d' : 'none'
+                            }} />
+                        ))}
+                    </div>
+                );
+    
+                if (!started) return (
+                    <div style={{
+                        width: '100%', height: '100vh', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center',
+                        background: '#0d0d0d'
+                    }}>
+                        <button onClick={onBack} style={{
+                            position: 'absolute', top: '2rem', left: '2rem',
+                            backgroundColor: 'rgba(255,255,255,0.08)', border: 'none', color: 'white',
+                            padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '600'
+                        }}>← Back</button>
+    
+                        <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🥁</div>
+                        <h1 style={{
+                            color: 'white', fontSize: '2.75rem', fontWeight: '900',
+                            letterSpacing: '-2px', marginBottom: '0.5rem'
+                        }}>Drum Machine</h1>
+                        <p style={{ color: 'rgba(255,255,255,0.4)', marginBottom: '0.5rem', textAlign: 'center', maxWidth: '300px', lineHeight: 1.6 }}>
+                            A word appears on the beat. Tap the correct translation pad before the next beat drops.
+                        </p>
+                        <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.85rem', marginBottom: '2.5rem' }}>
+                            {TOTAL_ROUNDS} rounds · {BPM} BPM
+                        </p>
+                        <button onClick={() => setStarted(true)} style={{
+                            backgroundColor: '#ffd93d', color: '#0d0d0d', border: 'none',
+                            padding: '1rem 3rem', borderRadius: '2rem', cursor: 'pointer',
+                            fontSize: '1.2rem', fontWeight: '900', letterSpacing: '2px',
+                            boxShadow: '0 0 40px rgba(255,217,61,0.4)'
+                        }}>DROP IT</button>
+                    </div>
+                );
+    
+                if (isFinished) return (
+                    <div style={{
+                        width: '100%', height: '100vh', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center', background: '#0d0d0d'
+                    }}>
+                        <div style={{
+                            border: '1px solid rgba(255,255,255,0.1)',
+                            backgroundColor: 'rgba(255,255,255,0.04)',
+                            padding: '3rem', borderRadius: '1.5rem',
+                            textAlign: 'center', maxWidth: '360px', width: '90%'
+                        }}>
+                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>
+                                {score >= 8 ? '🎛️' : score >= 5 ? '🥁' : '🎵'}
+                            </div>
+                            <h2 style={{ color: 'white', fontSize: '2rem', fontWeight: '900', letterSpacing: '-1px', marginBottom: '1.5rem' }}>
+                                Session Over
+                            </h2>
+                            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', marginBottom: '2rem' }}>
+                                <div style={{
+                                    backgroundColor: 'rgba(255,217,61,0.1)', border: '1px solid #ffd93d',
+                                    borderRadius: '1rem', padding: '1rem 1.5rem'
+                                }}>
+                                    <div style={{ color: '#ffd93d', fontSize: '2.25rem', fontWeight: '900' }}>{score}</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', letterSpacing: '1px' }}>HITS</div>
+                                </div>
+                                <div style={{
+                                    backgroundColor: 'rgba(255,107,107,0.1)', border: '1px solid #ff6b6b',
+                                    borderRadius: '1rem', padding: '1rem 1.5rem'
+                                }}>
+                                    <div style={{ color: '#ff6b6b', fontSize: '2.25rem', fontWeight: '900' }}>{TOTAL_ROUNDS - score}</div>
+                                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem', letterSpacing: '1px' }}>MISSES</div>
+                                </div>
+                            </div>
+                            <button onClick={onBack} style={{
+                                backgroundColor: '#ffd93d', color: '#0d0d0d', border: 'none',
+                                padding: '0.85rem 2.5rem', borderRadius: '2rem',
+                                cursor: 'pointer', fontWeight: '900', fontSize: '1rem'
+                            }}>Back to Menu</button>
+                        </div>
+                    </div>
+                );
+    
+                return (
+                    <div style={{
+                        width: '100%', height: '100vh', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center',
+                        background: '#0d0d0d', padding: '1.5rem', userSelect: 'none'
+                    }}>
+                        {/* Header */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', maxWidth: '480px', marginBottom: '2rem' }}>
+                            <button onClick={onBack} style={{
+                                backgroundColor: 'rgba(255,255,255,0.08)', border: 'none', color: 'white',
+                                padding: '0.4rem 0.9rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '600'
+                            }}>← Back</button>
+                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                <span style={{ color: '#ffd93d', fontWeight: '900', fontSize: '1.1rem' }}>⚡ {score}/{TOTAL_ROUNDS}</span>
+                                <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.9rem' }}>Round {round + 1}</span>
+                            </div>
+                        </div>
+    
+                        <BeatDots />
+    
+                        {/* Word display */}
+                        <div style={{
+                            width: '100%', maxWidth: '480px',
+                            backgroundColor: pulsing ? 'rgba(255,217,61,0.08)' : 'rgba(255,255,255,0.04)',
+                            border: `2px solid ${pulsing ? '#ffd93d' : 'rgba(255,255,255,0.08)'}`,
+                            borderRadius: '1.25rem', padding: '2rem',
+                            textAlign: 'center', marginBottom: '2rem',
+                            transition: 'all 0.1s ease',
+                            boxShadow: pulsing ? '0 0 40px rgba(255,217,61,0.15)' : 'none'
+                        }}>
+                            <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '3px', marginBottom: '0.5rem' }}>
+                                Translate
+                            </p>
+                            <p style={{ color: 'white', fontSize: '3rem', fontWeight: '900', letterSpacing: '-2px', lineHeight: 1 }}>
+                                {currentWord?.word}
+                            </p>
+                            {missedBeat && !answered && (
+                                <p style={{ color: '#ff6b6b', fontSize: '0.8rem', marginTop: '0.5rem', fontWeight: '700' }}>missed!</p>
+                            )}
+                        </div>
+    
+                        {/* Beat timer bar */}
+                        <div style={{
+                            width: '100%', maxWidth: '480px', height: '4px',
+                            backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: '2px', marginBottom: '2rem', overflow: 'hidden'
+                        }}>
+                            <div style={{
+                                height: '100%', borderRadius: '2px',
+                                backgroundColor: answered ? '#6bcb77' : '#ffd93d',
+                                width: `${(beatsUntilNext / activeBeats) * 100}%`,
+                                transition: `width ${BEAT_INTERVAL}ms linear`
+                            }} />
+                        </div>
+    
+                        {/* Drum pads */}
+                        <div style={{
+                            display: 'grid', gridTemplateColumns: '1fr 1fr',
+                            gap: '1rem', width: '100%', maxWidth: '480px'
+                        }}>
+                            {options.map((option, i) => {
+                                const isThisFeedback = feedback?.index === i;
+                                const correct = feedback?.correct;
+                                const bgColor = isThisFeedback
+                                    ? (correct ? '#6bcb77' : '#ff6b6b')
+                                    : padColors[i];
+    
+                                return (
+                                    <button
+                                        key={i}
+                                        onClick={() => handleTap(i)}
+                                        disabled={answered}
+                                        style={{
+                                            backgroundColor: answered && !isThisFeedback ? 'rgba(255,255,255,0.04)' : bgColor,
+                                            border: 'none', borderRadius: '1rem',
+                                            padding: '1.5rem 1rem',
+                                            cursor: answered ? 'default' : 'pointer',
+                                            display: 'flex', flexDirection: 'column',
+                                            alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+                                            boxShadow: answered && !isThisFeedback ? 'none' : `0 8px 24px ${bgColor}55`,
+                                            transition: 'all 0.15s ease',
+                                            transform: isThisFeedback ? 'scale(1.05)' : 'scale(1)'
+                                        }}
+                                    >
+                                        <span style={{
+                                            fontSize: '0.65rem', fontWeight: '900',
+                                            letterSpacing: '2px', opacity: 0.6,
+                                            color: answered && !isThisFeedback ? 'rgba(255,255,255,0.2)' : '#0d0d0d'
+                                        }}>{padLabels[i]}</span>
+                                        <span style={{
+                                            fontSize: '1rem', fontWeight: '800',
+                                            color: answered && !isThisFeedback ? 'rgba(255,255,255,0.2)' : '#0d0d0d',
+                                            textAlign: 'center', lineHeight: 1.3
+                                        }}>{option}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            };
         // Whack-a-Mole Mode
         const WhackAMoleMode = ({ deckKey, onBack }) => {
             const deck = getDeck(deckKey);
@@ -1783,6 +2080,8 @@
                     return <PenguinGameMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
                 case 'whack-a-mole':
                     return <WhackAMoleMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
+                case 'drum-machine':
+                    return <DrumMachineMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
                 default:
                     return <HomePage onSelectDeck={handleSelectDeck} />;
             }
