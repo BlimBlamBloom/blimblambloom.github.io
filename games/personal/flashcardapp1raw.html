@@ -333,6 +333,12 @@
                     name: 'Drum Machine',
                     description: 'Tap the correct translation on the beat',
                     icon: '🥁'
+                },
+                {
+                    id: 'flappy-bird',
+                    name: 'Flappy Bird',
+                    description: 'Fly through the gap with the correct translation',
+                    icon: '🐦'
                 }
             ];
 
@@ -1011,6 +1017,434 @@
                 </div>
             );
         };
+
+        // Flappy Bird Mode
+        const FlappyBirdMode = ({ deckKey, onBack }) => {
+            const deck = getDeck(deckKey);
+            const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+
+            const GRAVITY = 0.45;
+            const JUMP = -7.5;
+            const PIPE_SPEED = 2.4;
+            const PIPE_WIDTH = 80;
+            const PIPE_GAP = 160;
+            const BIRD_X = 80;
+            const BIRD_SIZE = 28;
+            const GAME_W = 480;
+            const GAME_H = 520;
+
+            const [started, setStarted] = useState(false);
+            const [dead, setDead] = useState(false);
+            const [score, setScore] = useState(0);
+            const [birdY, setBirdY] = useState(GAME_H / 2);
+            const [velocity, setVelocity] = useState(0);
+            const [pipes, setPipes] = useState([]);
+            const [currentWord, setCurrentWord] = useState(null);
+            const [flashCorrect, setFlashCorrect] = useState(false);
+            const [flashWrong, setFlashWrong] = useState(false);
+            const [groundOffset, setGroundOffset] = useState(0);
+
+            const birdYRef = useRef(GAME_H / 2);
+            const velocityRef = useRef(0);
+            const pipesRef = useRef([]);
+            const deadRef = useRef(false);
+            const scoreRef = useRef(0);
+            const wordQueueRef = useRef([]);
+            const frameRef = useRef(null);
+            const pipeIdRef = useRef(0);
+
+            const getNextWord = () => {
+                if (wordQueueRef.current.length === 0)
+                    wordQueueRef.current = shuffle([...deck.words]);
+                return wordQueueRef.current.pop();
+            };
+
+            const makeTranslationOptions = (correctWord) => {
+                const correct = correctWord.translation;
+                const distractors = shuffle(
+                    deck.words.filter(w => w.word !== correctWord.word)
+                ).slice(0, 1).map(w => w.translation);
+                const options = shuffle([correct, ...distractors]);
+                return { top: options[0], bottom: options[1], correctTranslation: correct };
+            };
+
+            const spawnPipe = (existingPipes) => {
+                const gapTop = 80 + Math.random() * (GAME_H - PIPE_GAP - 160);
+                const word = getNextWord();
+                const { top, bottom, correctTranslation } = makeTranslationOptions(word);
+                return {
+                    id: pipeIdRef.current++,
+                    x: GAME_W + PIPE_WIDTH,
+                    gapTop,
+                    word,
+                    topLabel: top,
+                    bottomLabel: bottom,
+                    correctTranslation,
+                    topIsCorrect: top === correctTranslation,
+                    passed: false,
+                };
+            };
+
+            const jump = () => {
+                if (deadRef.current) return;
+                velocityRef.current = JUMP;
+            };
+
+            useEffect(() => {
+                if (!started || dead) return;
+
+                wordQueueRef.current = shuffle([...deck.words]);
+                const firstPipe = spawnPipe([]);
+                setCurrentWord(firstPipe.word);
+                pipesRef.current = [firstPipe];
+                setPipes([firstPipe]);
+
+                const tick = () => {
+                    if (deadRef.current) return;
+
+                    // Physics
+                    velocityRef.current += GRAVITY;
+                    birdYRef.current += velocityRef.current;
+
+                    // Ground / ceiling
+                    if (birdYRef.current >= GAME_H - 40 || birdYRef.current <= 0) {
+                        deadRef.current = true;
+                        setDead(true);
+                        return;
+                    }
+
+                    // Move pipes
+                    let newPipes = pipesRef.current.map(p => ({ ...p, x: p.x - PIPE_SPEED }));
+
+                    // Spawn new pipe
+                    const last = newPipes[newPipes.length - 1];
+                    if (last && last.x < GAME_W - 260) {
+                        const np = spawnPipe(newPipes);
+                        newPipes = [...newPipes, np];
+                        setCurrentWord(np.word);
+                    }
+
+                    // Remove off-screen
+                    newPipes = newPipes.filter(p => p.x > -PIPE_WIDTH - 20);
+
+                    // Collision detection
+                    const bx = BIRD_X;
+                    const by = birdYRef.current;
+                    const r = BIRD_SIZE / 2 - 3;
+
+                    for (const pipe of newPipes) {
+                        const inXRange = bx + r > pipe.x && bx - r < pipe.x + PIPE_WIDTH;
+                        if (inXRange) {
+                            const inTopPipe = by - r < pipe.gapTop;
+                            const inBottomPipe = by + r > pipe.gapTop + PIPE_GAP;
+                            if (inTopPipe || inBottomPipe) {
+                                deadRef.current = true;
+                                setDead(true);
+                                return;
+                            }
+                        }
+
+                        // Passed through gap — check correctness
+                        if (!pipe.passed && pipe.x + PIPE_WIDTH < bx - r) {
+                            pipe.passed = true;
+                            const birdMidY = by;
+                            const wentThroughTop = birdMidY < pipe.gapTop + PIPE_GAP / 2;
+                            const choseCorrect = wentThroughTop
+                                ? pipe.topIsCorrect
+                                : !pipe.topIsCorrect;
+
+                            if (choseCorrect) {
+                                scoreRef.current += 1;
+                                setScore(scoreRef.current);
+                                setFlashCorrect(true);
+                                setTimeout(() => setFlashCorrect(false), 300);
+                            } else {
+                                setFlashWrong(true);
+                                setTimeout(() => setFlashWrong(false), 300);
+                                deadRef.current = true;
+                                setDead(true);
+                                return;
+                            }
+                        }
+                    }
+
+                    pipesRef.current = newPipes;
+                    setBirdY(birdYRef.current);
+                    setPipes([...newPipes]);
+                    setVelocity(velocityRef.current);
+                    setGroundOffset(prev => (prev + PIPE_SPEED) % 48);
+
+                    frameRef.current = requestAnimationFrame(tick);
+                };
+
+                frameRef.current = requestAnimationFrame(tick);
+                return () => cancelAnimationFrame(frameRef.current);
+            }, [started, dead]);
+
+            const handleRestart = () => {
+                deadRef.current = false;
+                birdYRef.current = GAME_H / 2;
+                velocityRef.current = 0;
+                pipesRef.current = [];
+                scoreRef.current = 0;
+                wordQueueRef.current = shuffle([...deck.words]);
+                setDead(false);
+                setScore(0);
+                setBirdY(GAME_H / 2);
+                setVelocity(0);
+                setPipes([]);
+                setCurrentWord(null);
+                setFlashCorrect(false);
+                setFlashWrong(false);
+            };
+
+            const birdRotation = Math.min(Math.max(velocity * 3, -25), 60);
+            const skyColor = flashCorrect ? '#1a3a2a' : flashWrong ? '#3a1a1a' : '#1a2a3a';
+
+            if (!started) return (
+                <div style={{
+                    width: '100%', height: '100vh', display: 'flex', flexDirection: 'column',
+                    alignItems: 'center', justifyContent: 'center',
+                    background: 'linear-gradient(180deg, #0f2027 0%, #203a43 50%, #2c5364 100%)'
+                }}>
+                    <button onClick={onBack} style={{
+                        position: 'absolute', top: '2rem', left: '2rem',
+                        backgroundColor: 'rgba(255,255,255,0.1)', border: 'none', color: 'white',
+                        padding: '0.5rem 1rem', borderRadius: '0.5rem', cursor: 'pointer', fontWeight: '600'
+                    }}>← Back</button>
+                    <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🐦</div>
+                    <h1 style={{ color: 'white', fontSize: '2.75rem', fontWeight: '900', letterSpacing: '-2px', marginBottom: '0.5rem' }}>
+                        Flappy Bird
+                    </h1>
+                    <p style={{ color: 'rgba(255,255,255,0.5)', textAlign: 'center', maxWidth: '300px', lineHeight: 1.7, marginBottom: '0.5rem' }}>
+                        A word appears above. Fly through the gap next to the correct translation. Wrong gap = game over!
+                    </p>
+                    <p style={{ color: 'rgba(255,255,255,0.25)', fontSize: '0.85rem', marginBottom: '2.5rem' }}>
+                        Click or tap anywhere to flap
+                    </p>
+                    <button
+                        onClick={() => setStarted(true)}
+                        style={{
+                            backgroundColor: '#38bdf8', color: '#0f2027', border: 'none',
+                            padding: '1rem 3rem', borderRadius: '2rem', cursor: 'pointer',
+                            fontSize: '1.2rem', fontWeight: '900', letterSpacing: '1px',
+                            boxShadow: '0 0 40px rgba(56,189,248,0.4)'
+                        }}>
+                        FLAP
+                    </button>
+                </div>
+            );
+
+            return (
+                <div
+                    onClick={jump}
+                    style={{
+                        width: '100%', height: '100vh', display: 'flex', flexDirection: 'column',
+                        alignItems: 'center', justifyContent: 'center',
+                        background: 'linear-gradient(180deg, #0f2027 0%, #203a43 100%)',
+                        cursor: 'pointer', userSelect: 'none', position: 'relative'
+                    }}
+                >
+                    {/* Back button */}
+                    <button
+                        onClick={(e) => { e.stopPropagation(); onBack(); }}
+                        style={{
+                            position: 'absolute', top: '1rem', left: '1rem',
+                            backgroundColor: 'rgba(255,255,255,0.1)', border: 'none', color: 'white',
+                            padding: '0.4rem 0.9rem', borderRadius: '0.5rem', cursor: 'pointer',
+                            fontWeight: '600', zIndex: 50, fontSize: '0.9rem'
+                        }}>← Back</button>
+
+                    {/* Score */}
+                    <div style={{
+                        position: 'absolute', top: '1rem', right: '1rem',
+                        color: 'white', fontWeight: '900', fontSize: '1.5rem', zIndex: 50,
+                        textShadow: '0 2px 8px rgba(0,0,0,0.5)'
+                    }}>⚡ {score}</div>
+
+                    {/* Word to translate */}
+                    {currentWord && (
+                        <div style={{
+                            position: 'absolute', top: '1rem',
+                            left: '50%', transform: 'translateX(-50%)',
+                            backgroundColor: 'rgba(0,0,0,0.6)',
+                            border: '1px solid rgba(56,189,248,0.4)',
+                            borderRadius: '1rem', padding: '0.5rem 1.25rem',
+                            zIndex: 50, textAlign: 'center'
+                        }}>
+                            <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '2px' }}>translate</p>
+                            <p style={{ color: 'white', fontWeight: '900', fontSize: '1.4rem', letterSpacing: '-0.5px' }}>{currentWord.word}</p>
+                        </div>
+                    )}
+
+                    {/* Game canvas */}
+                    <div style={{
+                        position: 'relative',
+                        width: `${GAME_W}px`, height: `${GAME_H}px`,
+                        maxWidth: '100%',
+                        backgroundColor: skyColor,
+                        borderRadius: '1rem',
+                        overflow: 'hidden',
+                        border: `2px solid ${flashCorrect ? '#4ade80' : flashWrong ? '#f87171' : 'rgba(255,255,255,0.08)'}`,
+                        boxShadow: flashCorrect
+                            ? '0 0 40px rgba(74,222,128,0.3)'
+                            : flashWrong
+                            ? '0 0 40px rgba(248,113,113,0.3)'
+                            : '0 20px 60px rgba(0,0,0,0.5)',
+                        transition: 'background-color 0.2s, border-color 0.2s'
+                    }}>
+                        {/* Stars */}
+                        {[...Array(18)].map((_, i) => (
+                            <div key={i} style={{
+                                position: 'absolute',
+                                width: i % 3 === 0 ? '2px' : '1px',
+                                height: i % 3 === 0 ? '2px' : '1px',
+                                backgroundColor: 'rgba(255,255,255,0.5)',
+                                borderRadius: '50%',
+                                left: `${(i * 53) % 100}%`,
+                                top: `${(i * 37) % 60}%`
+                            }} />
+                        ))}
+
+                        {/* Pipes */}
+                        {pipes.map(pipe => (
+                            <React.Fragment key={pipe.id}>
+                                {/* Top pipe */}
+                                <div style={{
+                                    position: 'absolute',
+                                    left: pipe.x, top: 0,
+                                    width: PIPE_WIDTH, height: pipe.gapTop,
+                                    background: 'linear-gradient(90deg, #166534, #16a34a, #166534)',
+                                    borderRadius: '0 0 6px 6px',
+                                    boxShadow: '2px 0 8px rgba(0,0,0,0.4)'
+                                }}>
+                                    {/* Cap */}
+                                    <div style={{
+                                        position: 'absolute', bottom: 0,
+                                        left: -6, right: -6, height: 20,
+                                        background: 'linear-gradient(90deg, #166534, #22c55e, #166534)',
+                                        borderRadius: '4px'
+                                    }} />
+                                    {/* Label */}
+                                    <div style={{
+                                        position: 'absolute', bottom: 28,
+                                        left: 0, right: 0, textAlign: 'center',
+                                        color: 'white', fontWeight: '800', fontSize: '0.8rem',
+                                        textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                                        padding: '0 4px', lineHeight: 1.2
+                                    }}>{pipe.topLabel}</div>
+                                </div>
+
+                                {/* Bottom pipe */}
+                                <div style={{
+                                    position: 'absolute',
+                                    left: pipe.x,
+                                    top: pipe.gapTop + PIPE_GAP,
+                                    width: PIPE_WIDTH,
+                                    height: GAME_H - pipe.gapTop - PIPE_GAP,
+                                    background: 'linear-gradient(90deg, #166534, #16a34a, #166534)',
+                                    borderRadius: '6px 6px 0 0',
+                                    boxShadow: '2px 0 8px rgba(0,0,0,0.4)'
+                                }}>
+                                    {/* Cap */}
+                                    <div style={{
+                                        position: 'absolute', top: 0,
+                                        left: -6, right: -6, height: 20,
+                                        background: 'linear-gradient(90deg, #166534, #22c55e, #166534)',
+                                        borderRadius: '4px'
+                                    }} />
+                                    {/* Label */}
+                                    <div style={{
+                                        position: 'absolute', top: 28,
+                                        left: 0, right: 0, textAlign: 'center',
+                                        color: 'white', fontWeight: '800', fontSize: '0.8rem',
+                                        textShadow: '0 1px 4px rgba(0,0,0,0.8)',
+                                        padding: '0 4px', lineHeight: 1.2
+                                    }}>{pipe.bottomLabel}</div>
+                                </div>
+                            </React.Fragment>
+                        ))}
+
+                        {/* Ground */}
+                        <div style={{
+                            position: 'absolute', bottom: 0, left: 0, right: 0, height: 40,
+                            background: 'linear-gradient(180deg, #92400e, #78350f)',
+                            borderTop: '3px solid #d97706'
+                        }}>
+                            <div style={{
+                                display: 'flex', gap: 0,
+                                transform: `translateX(-${groundOffset}px)`
+                            }}>
+                                {[...Array(14)].map((_, i) => (
+                                    <div key={i} style={{
+                                        width: 48, height: 16,
+                                        borderRight: '1px solid rgba(255,255,255,0.1)',
+                                        flexShrink: 0
+                                    }} />
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Bird */}
+                        <div style={{
+                            position: 'absolute',
+                            left: BIRD_X - BIRD_SIZE / 2,
+                            top: birdY - BIRD_SIZE / 2,
+                            width: BIRD_SIZE, height: BIRD_SIZE,
+                            transform: `rotate(${birdRotation}deg)`,
+                            fontSize: '1.5rem',
+                            lineHeight: 1,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))'
+                        }}>🐦</div>
+
+                        {/* Death overlay */}
+                        {dead && (
+                            <div style={{
+                                position: 'absolute', inset: 0,
+                                backgroundColor: 'rgba(0,0,0,0.75)',
+                                display: 'flex', flexDirection: 'column',
+                                alignItems: 'center', justifyContent: 'center',
+                                borderRadius: '1rem'
+                            }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>
+                                    {score >= 10 ? '🏆' : score >= 5 ? '🌟' : '💀'}
+                                </div>
+                                <h2 style={{ color: 'white', fontSize: '1.75rem', fontWeight: '900', letterSpacing: '-1px', marginBottom: '0.25rem' }}>
+                                    Game Over
+                                </h2>
+                                <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: '1.5rem', fontSize: '1.1rem' }}>
+                                    Score: <strong style={{ color: '#38bdf8' }}>{score}</strong>
+                                </p>
+                                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                                    <button
+                                        onClick={handleRestart}
+                                        style={{
+                                            backgroundColor: '#38bdf8', color: '#0f2027', border: 'none',
+                                            padding: '0.7rem 1.5rem', borderRadius: '2rem',
+                                            cursor: 'pointer', fontWeight: '900', fontSize: '0.95rem'
+                                        }}>Try Again</button>
+                                    <button
+                                        onClick={onBack}
+                                        style={{
+                                            backgroundColor: 'rgba(255,255,255,0.1)', color: 'white', border: 'none',
+                                            padding: '0.7rem 1.5rem', borderRadius: '2rem',
+                                            cursor: 'pointer', fontWeight: '700', fontSize: '0.95rem'
+                                        }}>Menu</button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    <p style={{ color: 'rgba(255,255,255,0.2)', fontSize: '0.8rem', marginTop: '0.75rem' }}>
+                        click or tap anywhere to flap
+                    </p>
+                </div>
+            );
+        };
+        
         // Drum Machine Mode
         const DrumMachineMode = ({ deckKey, onBack }) => {
                 const deck = getDeck(deckKey);
@@ -2082,6 +2516,8 @@
                     return <WhackAMoleMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
                 case 'drum-machine':
                     return <DrumMachineMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
+                case 'flappy-bird':
+                    return <FlappyBirdMode deckKey={selectedDeck} onBack={() => handleBack('modes')} />;
                 default:
                     return <HomePage onSelectDeck={handleSelectDeck} />;
             }
